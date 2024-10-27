@@ -50,6 +50,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 10
+  feedbackDuration: 0.4
+  feedbackColor: {r: 1, g: 0, b: 0.13899946, a: 0}
 --- !u!114 &2229830702410284182
 MonoBehaviour:
   m_ObjectHideFlags: 0

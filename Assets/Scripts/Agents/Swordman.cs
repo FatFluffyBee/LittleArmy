@@ -25,10 +25,12 @@ public class Swordman : Agent
     private bool returnHome = false;
 
     private float navDistToTarget;
+    private float navDistToHome;
     
     void Update(){ 
         BaseUpdate();
 
+        navDistToHome = NavMaths.DistBtwPoints(transform.position, homePoint);
         List<Transform> potentialTargets = GetTargetsInViewRange(aggroRange, AgentType.Ennemi);
         target = FindClosestTargetInNavRange(potentialTargets);
         if(target != null) {
@@ -67,24 +69,19 @@ public class Swordman : Agent
                     SwitchAgentState(AgentStatus.Travelling);
                     SetDestination(homePoint);
                 }
-                else if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) {
+                else if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ennemi in range  and ready to atk
                     SwitchAgentState(AgentStatus.Attacking);
                 } 
-                else if (navDistToTarget < circlingRange && timeBtwAtkTimer < Time.time) { //ennemi in range of attack and attack cd finished
+                else if (navDistToTarget < circlingRange && timeBtwAtkTimer < Time.time) { //ennemi not in circling range so just avance 
                     SetDestination(target.position);
                 } 
-                else { 
+                else { //ennemi in circling range
                     Vector3 circlingIdealPos = target.position + (transform.position - target.position).normalized * circlingRange;
                     NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
                     SetDestination(navPos.position);
                 }
 
-                if(navDistToTarget < circlingRange + 2 && target != null) {
-                    LookAtDirection(target.position);
-                }
-                else {
-                    LookAtDirection(navMeshAgent.path.corners[1]);
-                }
+                LookAtDirection(target.position);
                 feedbackMovement = true;
             break;
 
@@ -92,7 +89,7 @@ public class Swordman : Agent
                 LaunchSlashAttack();
                 SwitchAgentState(AgentStatus.Following);
                 feedbackMovement = false;
-                if(asBeenMoveOrdered) returnHome = true;
+                if(asBeenMoveOrdered && navDistToHome > aggroRange * 2) returnHome = true;
             break;
         }
 
@@ -127,11 +124,6 @@ public class Swordman : Agent
             if(Application.isPlaying)
                 Gizmos.DrawLine(transform.position, transform.position + rb.velocity);
         }    
-    }
-
-    private void SwitchAgentState(AgentStatus status) {
-        AgStatus = status;
-        Debug.Log("Switch Agent State to " + status.ToString());
     }
 }
 

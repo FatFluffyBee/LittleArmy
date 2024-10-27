@@ -146,6 +146,7 @@ public class Agent : MonoBehaviour, ISelectable
         rb.freezeRotation = false;
         gameObject.layer = LayerMask.NameToLayer("ColOnlyTerrain");
         transform.Rotate(Vector3.forward * Random.Range(10, -10) + Vector3.forward * Random.Range(10, -10), 1);
+        rd.material.color = Color.grey;
 
         Destroy(navMeshAgent);
         Destroy(this);
@@ -240,6 +241,11 @@ public class Agent : MonoBehaviour, ISelectable
         }              
                
         return target;
+    }
+
+    protected void SwitchAgentState(AgentStatus status) {
+        AgStatus = status;
+        //Debug.Log("Switch Agent State to " + status.ToString());
     }
 
     //--------------------------------------------------------

@@ -5,13 +5,48 @@ using UnityEngine;
 public class Castle : MonoBehaviour
 {
     public int maxHealth;
+    private bool feedbackHit = false;
+    [SerializeField] private float feedbackDuration;
+    private float timerFeedback = 0;
+    [SerializeField] private Color feedbackColor;
+    private Color baseColor;
+    private Renderer rd;
+
 
     private void Start(){
+        rd = GetComponent<Renderer>();
+        baseColor = rd.material.color;
         GetComponent<HealthSystem>().Initialize(maxHealth);
         GetComponent<HealthSystem>().OnDeath += OnDeath;
+        GetComponent<HealthSystem>().OnTakingDamage += OnHit;
     }
 
-    protected virtual void OnDeath(){
+    void Update() {
+        VisualFeedbackHit();
+    }
+
+    private void OnDeath(){
+        rd.material.color = Color.black;
         EnnemiObjective.instance.Remove(this);
+        Destroy(this);
+    }
+
+     private void OnHit(Vector3 knockback) {
+        feedbackHit = true;
+        timerFeedback = 0;
+    }
+
+    void VisualFeedbackHit(){
+        if(feedbackHit) {
+            if(timerFeedback >= feedbackDuration){
+                timerFeedback = 0;
+                feedbackHit = false;
+            }
+            else {
+                float ratio = 1 - timerFeedback / feedbackDuration;
+                rd.material.color = Color.Lerp(baseColor, feedbackColor, ratio * ratio * ratio);
+            }
+            timerFeedback += Time.deltaTime;
+        }
     }
 }
