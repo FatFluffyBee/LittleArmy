@@ -27,10 +27,10 @@ public class Ennemi_Basic : Agent
     [SerializeField] private float bldAtkRange;
     [SerializeField] private float bldAtkCd;
     [SerializeField] private float bldAtkDamage;
-    [SerializeField] private float bldAtkImmobilizeTime;
+    [SerializeField] private float bldAtkChargeTime;
     [SerializeField] private float bldProjGravityModif;
+    private float bldAtkChargeTimer = 0;
     private float bldAtkCdTimer = 0;
-    private float bldAtkImmobilizeTimer = 0;
     
     void Start()
     {
@@ -71,7 +71,7 @@ public class Ennemi_Basic : Agent
                 }
                 
                 LookAtDirection(agentTarget.position);
-                feedbackMovement = true;
+                EnableAgentMovement(true);
             break;
 
             case AgentStatus.Attacking :
@@ -79,10 +79,10 @@ public class Ennemi_Basic : Agent
                 SwitchAgentState(AgentStatus.SeekAgent);
 
                 LookAtDirection(agentTarget.position);
-                feedbackMovement = false;
+                EnableAgentMovement(false);
             break;
 
-            case AgentStatus.SeekBuilding : //Todo hmmmmmmmm weird
+            case AgentStatus.SeekBuilding :
                 if(agentTarget != null) {
                     AgStatus = AgentStatus.SeekAgent;
                 }
@@ -92,7 +92,8 @@ public class Ennemi_Basic : Agent
 
                 if(NavMesh.SamplePosition(buildingTarget.transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
                     if(bldAtkCdTimer < Time.time && NavMaths.DistBtwPoints(transform.position, hit.position) < bldAtkRange) {
-                        SwitchAgentState(AgentStatus.AttackBuilding);
+                        SwitchAgentState(AgentStatus.Charging);
+                        bldAtkChargeTimer = bldAtkChargeTime + Time.time;
                     }
                     else {
                         SetDestination(hit.position);
@@ -101,19 +102,33 @@ public class Ennemi_Basic : Agent
 
                 if(navMeshAgent.path.corners.Length > 1)
                     LookAtDirection(navMeshAgent.path.corners[1]);
-                feedbackMovement = true;
+                EnableAgentMovement(true);
+            break;
+
+            case AgentStatus.Charging :
+                if(buildingTarget == null) {
+                        SwitchAgentState(AgentStatus.SeekBuilding);
+                }
+                else {
+                    if(agentTarget != null) {
+                        AgStatus = AgentStatus.SeekAgent;
+                    }
+
+                    if(bldAtkChargeTimer < Time.time) {
+                        SwitchAgentState(AgentStatus.AttackBuilding);
+                    }
+
+                    LookAtDirection(buildingTarget.transform.position); 
+                    EnableAgentMovement(false);
+                }
             break;
 
             case AgentStatus.AttackBuilding :
-                if(bldAtkCdTimer < Time.time) {
-                    LaunchBuildingAttack();
-                }
-                if(bldAtkImmobilizeTimer < Time.time) {
-                    SwitchAgentState(AgentStatus.SeekBuilding);
-                }
+                LaunchBuildingAttack();
+                SwitchAgentState(AgentStatus.SeekBuilding);
                     
                 LookAtDirection(buildingTarget.transform.position);
-                feedbackMovement = false;
+                EnableAgentMovement(false);
             break;
         }
     }
@@ -122,8 +137,7 @@ public class Ennemi_Basic : Agent
         GameObject instance = Instantiate(bldAtkProj, bldAtkLaunchPoint.position, Quaternion.identity);
         instance.GetComponent<Torch>().Initialize(buildingTarget.GetComponent<Castle>());
         
-        bldAtkCdTimer = bldAtkCd + bldAtkImmobilizeTime + Time.time;
-        bldAtkImmobilizeTimer = bldAtkImmobilizeTime + Time.time;
+        bldAtkCdTimer = bldAtkCd + Time.time;
     }
 
     private void LaunchSlashAttack() {

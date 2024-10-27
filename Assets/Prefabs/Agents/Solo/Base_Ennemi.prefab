@@ -158,7 +158,7 @@ MonoBehaviour:
   bldAtkRange: 4
   bldAtkCd: 3
   bldAtkDamage: 1
-  bldAtkImmobilizeTime: 1
+  bldAtkChargeTime: 1
   bldProjGravityModif: 5
 --- !u!195 &7001289295324889284
 NavMeshAgent:

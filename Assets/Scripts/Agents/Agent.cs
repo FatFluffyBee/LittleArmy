@@ -243,6 +243,11 @@ public class Agent : MonoBehaviour, ISelectable
         return target;
     }
 
+    protected void EnableAgentMovement(bool choice) {
+        navMeshAgent.isStopped = !choice;
+        feedbackMovement = choice;
+    }
+
     protected void SwitchAgentState(AgentStatus status) {
         AgStatus = status;
         //Debug.Log("Switch Agent State to " + status.ToString());
@@ -279,7 +284,7 @@ public class Agent : MonoBehaviour, ISelectable
             SuperAgent.MouseExitFeedback();
     }
 }
-    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling}
+    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling, Charging}
 
     public struct DataTarget
     {

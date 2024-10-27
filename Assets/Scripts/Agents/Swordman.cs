@@ -50,7 +50,7 @@ public class Swordman : Agent
                 }
                 returnHome = false;
                 LookAtDirection(transform.position + Vector3.forward);
-                feedbackMovement = false;
+                EnableAgentMovement(false);
             break;
 
             case AgentStatus.Travelling : //travelling to a new spot
@@ -61,7 +61,7 @@ public class Swordman : Agent
                 }
 
                 if(navMeshAgent.path.corners.Length > 1) LookAtDirection(navMeshAgent.path.corners[1]);
-                feedbackMovement = true;
+                EnableAgentMovement(true);
                 break;
 
             case AgentStatus.Following : //follow an ennemy trail to get in attack range      
@@ -82,13 +82,13 @@ public class Swordman : Agent
                 }
 
                 LookAtDirection(target.position);
-                feedbackMovement = true;
+                EnableAgentMovement(true);
             break;
 
             case AgentStatus.Attacking : //attack the ennemy
                 LaunchSlashAttack();
                 SwitchAgentState(AgentStatus.Following);
-                feedbackMovement = false;
+                EnableAgentMovement(false);
                 if(asBeenMoveOrdered && navDistToHome > aggroRange * 2) returnHome = true;
             break;
         }
