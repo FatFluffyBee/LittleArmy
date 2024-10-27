@@ -62,6 +62,7 @@ public class Ennemi_Basic : Agent
                     }
                 } else 
                 SetDestination(agentTarget.position);
+                LookAtDirection(agentTarget.position);
             break;
 
             /*case AgentStatus.CircleAgent :
@@ -78,6 +79,7 @@ public class Ennemi_Basic : Agent
                 if(NavMesh.SamplePosition(buildingTarget.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
                     SetDestination(hit.position);
             } 
+            LookAtDirection(buildingTarget.position);
             break;
 
             /*case AgentStatus.AttackBuilding :
@@ -85,14 +87,12 @@ public class Ennemi_Basic : Agent
         }
 
         Transform posToLookAt = null;
-        if(AgStatus == AgentStatus.AttackAgent)
+        if(AgStatus == AgentStatus.SeekAgent)
             posToLookAt = agentTarget;
         else if (AgStatus == AgentStatus.AttackBuilding)
             posToLookAt = buildingTarget;
-
-        if(posToLookAt != null)
-            UpdateRotation(circlingRange, navDistToTarget, posToLookAt);
     }
+    
     private void LaunchSlashAttack() {
         slashPartSystem.Stop();
         slashPartSystem.Play();

@@ -17,8 +17,9 @@ public class Agent : MonoBehaviour, ISelectable
     protected Rigidbody rb;
     private PathBallDisplay pathBallDisplay;
     protected bool isCenterAgent = false;
+    protected bool asBeenMoveOrdered = false;
     protected Color unitColor;
-    protected Vector3 homePoint;
+    protected Vector3 homePoint ;
 
     [Header("Damage Feedback")]
     public float feedbackDuration = 0.4f;
@@ -46,19 +47,18 @@ public class Agent : MonoBehaviour, ISelectable
 
         pathBallDisplay = GetComponent<PathBallDisplay>();
         pathBallDisplay?.Initialize(unitColor);
-        homePoint = transform.position;
+
+        NavMesh.SamplePosition(transform.position, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
+        homePoint = navPos.position;
 
         navMeshAgent.updateRotation = false;
     }
 
     public virtual void BaseUpdate()
     {
-        /*if(navMeshAgent.path.corners.Length > 1)
-            LookAtDirection(navMeshAgent.path.corners[1]);*/
-
         FeedbackMovement();
         VisualFeedbackHit();
-        if(pathBallDisplay != null) 
+        if(pathBallDisplay != null && asBeenMoveOrdered) 
             if(isCenterAgent && AgStatus == AgentStatus.Travelling)
                 pathBallDisplay.DisplayUnitPathWithBalls(navMeshAgent.path.corners.ToList());
 
@@ -66,7 +66,6 @@ public class Agent : MonoBehaviour, ISelectable
              if(rb.velocity.magnitude < stillThreshold)
                 DisableRigidBodyPhysics();
         }
-
         if(debug)
             DebugPath();
     }
@@ -101,6 +100,7 @@ public class Agent : MonoBehaviour, ISelectable
         SetDestination(destination);
         AgStatus = AgentStatus.Travelling;
         homePoint = destination;
+        asBeenMoveOrdered = true;
     }
 
     void FeedbackMovement(){
@@ -111,34 +111,25 @@ public class Agent : MonoBehaviour, ISelectable
         }
     }
 
-    protected virtual void UpdateRotation(float minRange, float distToTarget, Transform target) {
-        if(target != null) {
-            if(distToTarget > minRange) {
-                if(navMeshAgent.path.corners.Length > 1) {
-                    LookAtDirection(navMeshAgent.path.corners[1]); 
-                }
-                else {
-                    LookAtDirection(transform.position + Vector3.forward);
-                }
-            }
-            else {
-                if(navMeshAgent.path.corners.Length > 1) {
-                    LookAtDirection(target.position);
-                }
-            }  
-        }
-        else {
-
-        }
-    }
-
     protected bool IsAgentAtDestination(){
         Vector3 start = transform.position;
         Vector3 end = navMeshAgent.destination;
         start.y = 0;
         end.y = 0;
 
-        if(Vector3.Distance(start, end) < 0.2f)
+        if(Vector3.Distance(start, end) < 0.1f)
+            return true;
+        else 
+            return false;
+    }
+
+    protected bool IsAgentAtHomePoint(){
+        Vector3 start = transform.position;
+        Vector3 end = homePoint;
+        start.y = 0;
+        end.y = 0;
+
+        if(Vector3.Distance(start, end) < 0.1f)
             return true;
         else 
             return false;
@@ -282,7 +273,7 @@ public class Agent : MonoBehaviour, ISelectable
             SuperAgent.MouseExitFeedback();
     }
 }
-    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding}
+    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling}
 
     public struct DataTarget
     {

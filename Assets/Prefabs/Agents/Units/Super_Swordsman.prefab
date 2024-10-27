@@ -65,7 +65,6 @@ MonoBehaviour:
   - {fileID: 6283476329669462212}
   - {fileID: 5567592252899113288}
   - {fileID: 6358452522775783165}
-  destinationTest: {fileID: 0}
   unitColor: {r: 1, g: 0.9345745, b: 0, a: 0}
   selectedColor: {r: 0, g: 1, b: 0.14043546, a: 0}
   unSelectedColor: {r: 1, g: 0, b: 0, a: 0}
@@ -591,6 +590,18 @@ PrefabInstance:
     - target: {fileID: 3431492035071260860, guid: 09c658d77717b304694345ecbc1f324f, type: 3}
       propertyPath: m_Name
       value: Swordsman
+      objectReference: {fileID: 0}
+    - target: {fileID: 7148272343813899216, guid: 09c658d77717b304694345ecbc1f324f, type: 3}
+      propertyPath: circlingRange
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7148272343813899216, guid: 09c658d77717b304694345ecbc1f324f, type: 3}
+      propertyPath: idleViewRange
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 7148272343813899216, guid: 09c658d77717b304694345ecbc1f324f, type: 3}
+      propertyPath: travellingViewRange
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 8312036546541061910, guid: 09c658d77717b304694345ecbc1f324f, type: 3}
       propertyPath: m_LocalPosition.x

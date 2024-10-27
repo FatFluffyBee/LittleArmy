@@ -51,5 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Little Arrow Dude.sln"
+    "dotnet.defaultSolution": "LittleArmy.sln"
 }

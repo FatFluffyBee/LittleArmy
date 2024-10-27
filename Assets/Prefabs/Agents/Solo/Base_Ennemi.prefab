@@ -144,11 +144,11 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 1
   debug: 0
-  viewRange: 30
-  circlingRange: 6
+  viewRange: 10
+  circlingRange: 3
   attackLaunchRange: 2
   slashPartSystem: {fileID: 5017966175624832214}
-  timeBtwAttack: 4
+  timeBtwAttack: 1.5
   atkRadius: 2
   atkKnockback: 2
   atkDamage: 1

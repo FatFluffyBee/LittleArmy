@@ -1,12 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class Swordman : Agent
 {
-   [SerializeField] private float travellingViewRange;
-   [SerializeField] private float idleViewRange;
+   [SerializeField] private float aggroRange = 20f;
    [SerializeField] private float circlingRange;
    
    [Header("Attack")]
@@ -20,52 +21,82 @@ public class Swordman : Agent
 
     [Header("Targetting")]
     [SerializeField] private Transform target;
-    public TargettingType targettingType = TargettingType.First;
     public float timeBtwTargetCheck = 0.2f;
+    private bool returnHome = false;
 
     private float navDistToTarget;
     
-    void Update(){ //todo recompile
+    void Update(){ 
         BaseUpdate();
 
-        List<Transform> potentialTargets = GetTargetsInViewRange(idleViewRange, AgentType.Ennemi);
+        List<Transform> potentialTargets = GetTargetsInViewRange(aggroRange, AgentType.Ennemi);
         target = FindClosestTargetInNavRange(potentialTargets);
-        if(target != null)
+        if(target != null) {
             navDistToTarget = NavMaths.DistBtwPoints(transform.position, target.position);
-        else 
-            navDistToTarget = 0;
-
-        float aggroRange = 0;
-        switch(AgStatus) {
-            case AgentStatus.Travelling :
-                aggroRange = travellingViewRange;
-            break;
-
-            case AgentStatus.Idle :
-                aggroRange = idleViewRange;
-            break;
+            if(navDistToTarget > aggroRange) target = null;
+        }
+        else {
+            navDistToTarget = Mathf.Infinity;
         }
 
-        if(target != null)
-            if(navDistToTarget < aggroRange) {
-                if(timeBtwAtkTimer < Time.time) {
-                    if(navDistToTarget < atkRange) {
-                        LaunchSlashAttack();
-                    }
-                    else {
-                        SetDestination(target.position);
-                    }    
+        switch(AgStatus) {
+            case AgentStatus.Idle : //dont move but attack if in range
+                if(target != null) SwitchAgentState(AgentStatus.Following);
+                if(!IsAgentAtHomePoint()) {
+                    SwitchAgentState(AgentStatus.Travelling);
+                    SetDestination(homePoint);
                 }
-                else {
+                returnHome = false;
+                LookAtDirection(transform.position + Vector3.forward);
+                feedbackMovement = false;
+            break;
+
+            case AgentStatus.Travelling : //travelling to a new spot
+                if(target != null) SwitchAgentState(AgentStatus.Following);
+                else if(IsAgentAtDestination()) {
+                    SwitchAgentState(AgentStatus.Idle);
+                    asBeenMoveOrdered = false;
+                }
+
+                if(navMeshAgent.path.corners.Length > 1) LookAtDirection(navMeshAgent.path.corners[1]);
+                feedbackMovement = true;
+                break;
+
+            case AgentStatus.Following : //follow an ennemy trail to get in attack range      
+                if(navDistToTarget > aggroRange || target == null || returnHome) {  //ennemi out of aggro zone or no ennemy
+                    SwitchAgentState(AgentStatus.Travelling);
+                    SetDestination(homePoint);
+                }
+                else if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) {
+                    SwitchAgentState(AgentStatus.Attacking);
+                } 
+                else if (navDistToTarget < circlingRange && timeBtwAtkTimer < Time.time) { //ennemi in range of attack and attack cd finished
+                    SetDestination(target.position);
+                } 
+                else { 
                     Vector3 circlingIdealPos = target.position + (transform.position - target.position).normalized * circlingRange;
                     NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
                     SetDestination(navPos.position);
                 }
-            }
-            else {
-                GiveMoveOrder(homePoint);
-            }
-        UpdateRotation(circlingRange, navDistToTarget, target);
+
+                if(navDistToTarget < circlingRange + 2 && target != null) {
+                    LookAtDirection(target.position);
+                }
+                else {
+                    LookAtDirection(navMeshAgent.path.corners[1]);
+                }
+                feedbackMovement = true;
+            break;
+
+            case AgentStatus.Attacking : //attack the ennemy
+                LaunchSlashAttack();
+                SwitchAgentState(AgentStatus.Following);
+                feedbackMovement = false;
+                if(asBeenMoveOrdered) returnHome = true;
+            break;
+        }
+
+        //UpdateRotation(circlingRange, navDistToTarget, target);
     }
 
     private void LaunchSlashAttack() {
@@ -88,9 +119,7 @@ public class Swordman : Agent
     private void OnDrawGizmos() {
         if(debug) {
             Gizmos.color = Color.green; 
-            Gizmos.DrawWireSphere(transform.position, idleViewRange); //Draw range
-            Gizmos.color = Color.yellow; 
-            Gizmos.DrawWireSphere(transform.position, travellingViewRange); //Draw range
+            Gizmos.DrawWireSphere(transform.position, aggroRange); //Draw range
             Gizmos.color = Color.blue; 
             Gizmos.DrawWireSphere(transform.position, circlingRange); //Draw range
             Gizmos.color = Color.red; 
@@ -98,6 +127,11 @@ public class Swordman : Agent
             if(Application.isPlaying)
                 Gizmos.DrawLine(transform.position, transform.position + rb.velocity);
         }    
+    }
+
+    private void SwitchAgentState(AgentStatus status) {
+        AgStatus = status;
+        Debug.Log("Switch Agent State to " + status.ToString());
     }
 }
 

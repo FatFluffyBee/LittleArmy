@@ -146,17 +146,15 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 1
   debug: 0
-  travellingViewRange: 20
-  idleViewRange: 10
-  circlingRange: 5
+  aggroRange: 10
+  circlingRange: 3
   atkRange: 2
   atkRadius: 2
   atkDamage: 1
   atkKnockback: 2
-  timeBtwAttack: 4
+  timeBtwAttack: 1.5
   slashPartSystem: {fileID: 8637674244510264989}
   target: {fileID: 0}
-  targettingType: 0
   timeBtwTargetCheck: 0.2
 --- !u!114 &8355333354777030581
 MonoBehaviour:
