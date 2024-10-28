@@ -139,20 +139,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rd: {fileID: 2962111226283241266}
   fbSelectionObject: {fileID: 9024180786753255186}
-  maxHealth: 3
+  maxHealth: 2
   stillThreshold: 0.05
   feedbackDuration: 0.4
   feedbackColor: {r: 1, g: 0, b: 0, a: 1}
   cycleDuration: 0.4
-  heightMax: 1
+  heightMax: 0.5
   debug: 0
   aggroRange: 10
   circlingRange: 3
+  atkNumTargets: 1
   atkRange: 2
   atkRadius: 2
   atkDamage: 1
-  atkKnockback: 2
-  timeBtwAttack: 1.5
+  atkKnockback: 15
+  timeBtwAtk: 1.5
   slashPartSystem: {fileID: 8637674244510264989}
   target: {fileID: 0}
   timeBtwTargetCheck: 0.2
@@ -197,7 +198,7 @@ NavMeshAgent:
   m_Speed: 15
   m_Acceleration: 30
   avoidancePriority: 50
-  m_AngularSpeed: 90
+  m_AngularSpeed: 360
   m_StoppingDistance: 0.1
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
@@ -318,7 +319,7 @@ Rigidbody:
   serializedVersion: 4
   m_Mass: 1
   m_Drag: 1
-  m_AngularDrag: 0.05
+  m_AngularDrag: 0.5
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -354,8 +355,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
+  m_Radius: 0.4
+  m_Height: 1.8
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1425753705926001415

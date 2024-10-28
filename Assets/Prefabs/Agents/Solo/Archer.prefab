@@ -171,27 +171,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rd: {fileID: 6122495625529907087}
   fbSelectionObject: {fileID: 791087853808237213}
-  maxHealth: 10
+  maxHealth: 1
   stillThreshold: 0.05
   feedbackDuration: 0.4
   feedbackColor: {r: 1, g: 0, b: 0, a: 0}
-  knockbackDuration: 0.2
   cycleDuration: 0.4
   heightMax: 1
-  debug: 1
+  debug: 0
   arrowPrefab: {fileID: 6995656731119426635, guid: 05fada9e6e492614da66f883208489b6, type: 3}
   launchPoint: {fileID: 2181176863193463671}
-  reloadTime: 1
-  timeToChargeRange: {x: 0, y: 0}
-  range: 30
+  reloadTime: 2
+  timeToChargeRange: {x: 1, y: 1.5}
+  atkRange: 20
   deviation: 2
   airTimeRange: {x: 0.4, y: 1.2}
-  gravityMul: 15
-  damage: 1
-  knockbackForce: 10
-  target: {fileID: 0}
-  targettingType: 0
-  timeBtwTargetCheck: 0.2
+  gravityMul: 10
+  damage: 2
+  knockbackForce: 15
+  disruptRange: 5
   stepDuration: 0.02
   stepNumbers: 200
 --- !u!114 &7346653644100394208
@@ -235,7 +232,7 @@ NavMeshAgent:
   m_Speed: 15
   m_Acceleration: 30
   avoidancePriority: 50
-  m_AngularSpeed: 90
+  m_AngularSpeed: 360
   m_StoppingDistance: 0.1
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
@@ -392,8 +389,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
+  m_Radius: 0.4
+  m_Height: 1.8
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &-8672009587423610636

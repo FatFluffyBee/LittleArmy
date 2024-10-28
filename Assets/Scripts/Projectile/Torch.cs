@@ -27,7 +27,8 @@ public class Torch : MonoBehaviour
     }
 
     private void OnDestroy() {
-        castle?.GetComponent<HealthSystem>().TakeDamage(damage, Vector3.zero);
+        if(castle != null)
+            castle.GetComponent<HealthSystem>().TakeDamage(damage, Vector3.zero);
     }
     
 }

@@ -29,11 +29,11 @@ public class SuperAgent : MonoBehaviour, ISelectable
             SetAgentsDestination(destination.position);
         }
 
+        if(agents.Count == 0)
+            Destroy(this);
+
         if(centerAgent == null)
             SetCenterAgent();
-
-        if(agents.Count == 0)
-            Destroy(gameObject);
     }
     public void SetAgentsDestination(Vector3 destination) {
         List<Vector3> formationPositions = GetFormationPos(destination, formationType, spacing);
@@ -103,6 +103,9 @@ public class SuperAgent : MonoBehaviour, ISelectable
     }
 
     public void SetCenterAgent() {
+        if(agents.Count == 0)
+            return;
+
         if(centerAgent != null)
             centerAgent.ClearCenterAgent();
             

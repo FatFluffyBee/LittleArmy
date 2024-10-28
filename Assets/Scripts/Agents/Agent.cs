@@ -106,7 +106,7 @@ public class Agent : MonoBehaviour, ISelectable
     void FeedbackMovement(){
         if((feedbackMovement && rb.isKinematic) || cycleTimer != 0){
             cycleTimer += Time.deltaTime; 
-            rd.transform.position = transform.position + Vector3.up * (Mathf.Abs(Mathf.Cos(cycleTimer / cycleDuration * 6.28f)) * heightMax);
+            rd.transform.position = transform.position + Vector3.up * (Mathf.Abs(Mathf.Cos((cycleTimer / cycleDuration - 0.25f) * 6.28f)) * heightMax);
             if(cycleTimer > cycleDuration) cycleTimer = 0;
         }
     }
@@ -207,9 +207,9 @@ public class Agent : MonoBehaviour, ISelectable
         transform.LookAt(dir);
     }
 
-    protected List<Transform> GetTargetsInViewRange(float range, AgentType agentType) 
+    protected List<DataTarget> GetDataTargetsInViewRange(float range, AgentType agentType) 
     {
-        List<Transform> targets = new List<Transform>();
+        List<DataTarget> targets = new List<DataTarget>();
 
         LayerMask mask = LayerMask.GetMask("Agents");
         Collider [] hits = Physics.OverlapSphere(transform.position, range, mask);
@@ -218,7 +218,7 @@ public class Agent : MonoBehaviour, ISelectable
             foreach(Collider c in hits){
                 if(c.transform.GetComponent<IsTargeteable>()) {
                     if(c.transform.GetComponent<IsTargeteable>().agentType == agentType){ 
-                        targets.Add(c.transform);
+                        targets.Add(new DataTarget(c, Vector3.Distance(transform.position, c.transform.position)));
                     }
                 }
             }
@@ -226,13 +226,29 @@ public class Agent : MonoBehaviour, ISelectable
         return targets;       
     }
 
-    protected Transform FindClosestTargetInNavRange(List<Transform> targets) //check if target still valid and then find target if not (do not change until previous target is wrong)   
+    protected List<DataTarget> OrderDataTargetsByDist(List<DataTarget> dataTargets) {
+        for(int i = 0; i < dataTargets.Count - 1; i++) {
+            for(int j = 0; j < dataTargets.Count - 1 ; j++) {
+                float present = dataTargets[j].dist;
+                float adjacent = dataTargets[j+1].dist;
+
+                if(present > adjacent){
+                    DataTarget temp = dataTargets[j];
+                    dataTargets[j] = dataTargets[j+1];
+                    dataTargets[j+1] = temp;
+                }
+            }
+        }        
+        return dataTargets;
+    }
+
+    protected DataTarget FindClosestTargetInNavRange(List<DataTarget> targets) //check if target still valid and then find target if not (do not change until previous target is wrong)   
     {  
         float minDistance = float.MaxValue;
-        Transform target = null;
+        DataTarget target = new DataTarget();
 
         for(int i = 0; i < targets.Count; i++) {
-            float curentDistance = NavMaths.DistBtwPoints(transform.position, targets[i].transform.position);
+            float curentDistance = targets[i].dist;
 
             if(minDistance > curentDistance) {
                 minDistance = curentDistance;
@@ -284,7 +300,7 @@ public class Agent : MonoBehaviour, ISelectable
             SuperAgent.MouseExitFeedback();
     }
 }
-    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling, Charging}
+    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling, Charging, Fleeing}
 
     public struct DataTarget
     {

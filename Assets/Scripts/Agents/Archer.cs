@@ -1,38 +1,37 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class Archer : Agent
 {
     [Header("Projectile Launch")]
-    public GameObject arrowPrefab;
-    public Transform launchPoint;
-    public float reloadTime;
-    public Vector2 timeToChargeRange;
-    public float range;
-    public float deviation;
-    public Vector2 airTimeRange;
-    public float gravityMul;
-    public float damage;
-    public float knockbackForce;
+    [SerializeField] private GameObject arrowPrefab;
+    [SerializeField] private Transform launchPoint;
+    [SerializeField] private float reloadTime;
+    [SerializeField] private Vector2 timeToChargeRange;
+    [SerializeField] private float atkRange;
+    [SerializeField] private float deviation;
+    [SerializeField] private Vector2 airTimeRange;
+    [SerializeField] private float gravityMul;
+    [SerializeField] private float damage;
+    [SerializeField] private float knockbackForce;
     private float reloadTimeTimer;
     private float timeToCharge;
     private float timeToChargeCount;
-    private bool isCharging;
     private bool readyToFire = false;
 
     [Header("Targetting")]
-    [SerializeField] private IsTargeteable target;
-    public TargettingType targettingType = TargettingType.First;
-    public float timeBtwTargetCheck = 0.2f;
+    private Transform target;
+    private Transform disrupterTarget;
+    [SerializeField] private float disruptRange = 5f;
 
     [Header("Debug Trajectory")]
     private LineRenderer lineRd;
     public float stepDuration;
     public int stepNumbers;
-
-    float timerCheckNewTarget = 0;
     
     void Start(){
         lineRd = GetComponent<LineRenderer>();
@@ -40,58 +39,87 @@ public class Archer : Agent
     void Update(){ //todo recompile
         BaseUpdate();
 
-        if(AgStatus == AgentStatus.Idle){
-            if(timerCheckNewTarget < Time.time) {
-                target = FindClosestTargetInViewRange();
-                timerCheckNewTarget = Time.time + 0.2f;
-            }
-        } else if (AgStatus == AgentStatus.Attacking) {
-            if(target == null){
-                feedbackMovement = false;
-                AgStatus = AgentStatus.Idle;
-            }
-        } else if (AgStatus == AgentStatus.Travelling) {
-            timeToChargeCount = 0;
-            feedbackMovement = true;
-            if(IsAgentAtDestination()) {
-                AgStatus = AgentStatus.Idle;
-                feedbackMovement = false;
-            }
+        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(atkRange, AgentType.Ennemi);
+        potentialTargets = OrderDataTargetsByDist(potentialTargets);
+        if(potentialTargets.Count > 0) {
+            target = potentialTargets[0].col.transform;
         }
 
-        if(AgStatus != AgentStatus.Travelling && target != null) {
-            AgStatus = AgentStatus.Attacking;
-            feedbackMovement = false;
+        List<DataTarget> potentialThreats = GetDataTargetsInViewRange(disruptRange, AgentType.Ennemi); 
+        DataTarget disruptDataTarget = FindClosestTargetInNavRange(potentialThreats);
+        
+        if(disruptDataTarget.col != null)
+            if(disruptDataTarget.dist < disruptRange && AgStatus != AgentStatus.Travelling) {
+                SwitchAgentState(AgentStatus.Fleeing);
+                disrupterTarget = disruptDataTarget.col.transform;
+            }
+            else {
+                disrupterTarget = null;
+            }
+        else {
+            disrupterTarget = null;
         }
 
-        if(AgStatus == AgentStatus.Attacking){
-            if(reloadTimeTimer < Time.time) {
-                if(!isCharging){
-                    isCharging = true;
+        switch(AgStatus) {
+            case AgentStatus.Idle : //dont move but attack if in range
+                if(target != null && reloadTimeTimer < Time.time) {
+                    SwitchAgentState(AgentStatus.Charging);
                     timeToCharge = Random.Range(timeToChargeRange.x, timeToChargeRange.y);
                     timeToChargeCount = timeToCharge + Time.time;
                 }
-                else {
-                    if(timeToChargeCount < Time.time)
-                        readyToFire = true;
+                else if(target == null && !IsAgentAtHomePoint()) {
+                    SwitchAgentState(AgentStatus.Travelling);
+                    SetDestination(homePoint);
                 }
-            }
-        }
-        else {
-            isCharging = false;
-        }
+
+                LookAtDirection(transform.position + Vector3.forward);
+                EnableAgentMovement(false);
+            break;
+
+            case AgentStatus.Travelling : //travelling to a new spot)
+                if(IsAgentAtDestination()) {
+                    SwitchAgentState(AgentStatus.Idle);
+                }
+
+                if(navMeshAgent.path.corners.Length > 1) LookAtDirection(navMeshAgent.path.corners[1]);
+                EnableAgentMovement(true);
+                break;
+
+            case AgentStatus.Fleeing :
+                if(disrupterTarget == null)
+                    SwitchAgentState(AgentStatus.Idle);
+                    SetDestination(homePoint);
+                EnableAgentMovement(true);
+            break;
+
+            case AgentStatus.Charging :
+                if(potentialTargets.Count == 0)
+                    SwitchAgentState(AgentStatus.Idle);
+
+                if(timeToChargeCount < Time.time) {
+                    SwitchAgentState(AgentStatus.Attacking);
+                }
+                EnableAgentMovement(false);
+            break;
+
+            case AgentStatus.Attacking : //attack the ennemy
+                readyToFire = true;
+                SwitchAgentState(AgentStatus.Idle);
+                EnableAgentMovement(false);
+            break;
+        }  
     }
+
     void FixedUpdate(){ 
         if(readyToFire){
             FireProjectile();
-            reloadTimeTimer = Time.time + reloadTime - timeToCharge;
-            isCharging = false;
+            reloadTimeTimer = Time.time + reloadTime;
             readyToFire = false;
         }
     }
 
     void FireProjectile(){
-        float range01 = Vector3.Distance(target.transform.position, launchPoint.position) / range;
+        float range01 = Vector3.Distance(target.transform.position, launchPoint.position) / atkRange;
         float airTimeFromDist = airTimeRange.x + (airTimeRange.y - airTimeRange.x) * range01; //retourne le temps que met la flèche pour attendre sa cible en fonction de la distance à celle-ci
 
         Vector3 ennemiFuturePos = target.GetComponent<Agent>().GetPredictedPos(airTimeFromDist);
@@ -117,49 +145,14 @@ public class Archer : Agent
         instance.GetComponent<Projectile>().Initialize(damage, knockbackForce, transform.position, AgentType.Ennemi);
     }
 
-    private IsTargeteable FindClosestTargetInViewRange(){ //vérifie si la target actuelle n'est plus bonne and if not find a new one
-        List<DataTarget> targets = new List<DataTarget>();
-        Collider [] hits = Physics.OverlapSphere(transform.position, range);
-
-        if(hits.Length > 0){
-            if(targettingType == TargettingType.First || targettingType == TargettingType.Last){
-                foreach(Collider c in hits){
-                    if(c.transform.GetComponent<IsTargeteable>())
-                        if(c.transform.GetComponent<IsTargeteable>().agentType == AgentType.Ennemi){
-                            DataTarget target = new DataTarget(c, Vector3.Distance(c.transform.position, launchPoint.position));
-
-                            if(targets.Count == 0){
-                                targets.Add(target);
-                                continue;
-                            }
-
-                            int count = targets.Count;
-                            for(int i = 0; i < count; i++){
-                                if(targets[i].dist > target.dist){
-                                    targets.Insert(i, target);
-                                    break;
-                                }
-                                else if(i == targets.Count - 1){
-
-                                    targets.Add(target);
-                                }
-                            }
-                        }
-                }
-
-                if(targets.Count > 0){
-                    if(targettingType == TargettingType.First) 
-                        target =  targets[0].col.transform.GetComponent<IsTargeteable>();
-                    return target;
-                } 
-            }
-        } 
-        return null;
-    }
-
     private void OnDrawGizmos() {
-        if(debug) 
-            Gizmos.DrawWireSphere(transform.position, range); //Draw range
+        if(debug) {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(transform.position, atkRange);
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, disruptRange); 
+        }
+            
     }
 }
 

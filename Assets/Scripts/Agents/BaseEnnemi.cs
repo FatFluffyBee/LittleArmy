@@ -20,6 +20,7 @@ public class Ennemi_Basic : Agent
     [SerializeField] private float atkRadius;
     [SerializeField] private float atkKnockback;
     [SerializeField] private float atkDamage;
+    [SerializeField] private float atkNumTargets;
 
     [Header("Building Attack")]
     [SerializeField] private GameObject bldAtkProj;
@@ -42,35 +43,40 @@ public class Ennemi_Basic : Agent
     { 
         BaseUpdate();
 
-        //first check if need to change status
-        
-        List<Transform> potentialTargets = GetTargetsInViewRange(viewRange, AgentType.Ally);
-        agentTarget = FindClosestTargetInNavRange(potentialTargets);
+        agentTarget = null;
+        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(viewRange, AgentType.Ally);
+        DataTarget closestTarget = FindClosestTargetInNavRange(potentialTargets);
 
+        if(closestTarget.col != null)
+            agentTarget = closestTarget.col.transform;
+        
         if(agentTarget != null) { 
             navDistToTarget = NavMaths.DistBtwPoints(transform.position, agentTarget.position);
             if(navDistToTarget > viewRange) agentTarget = null;
+            Debug.Log(agentTarget);
         }
 
-        //then apply behavior depending on current state
         switch(AgStatus) {
             case AgentStatus.SeekAgent :
-                if(agentTarget == null)
+                if(agentTarget == null) {
                     SwitchAgentState(AgentStatus.SeekBuilding);
-
-                if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ally in range  and ready to atk
-                    SwitchAgentState(AgentStatus.Attacking);
-                } 
-                else if (navDistToTarget < circlingRange && timeBtwAtkTimer < Time.time) { //ally not in circling range so just avance 
-                    SetDestination(agentTarget.position);
-                } 
-                else { //ally in circling range
-                    Vector3 circlingIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * circlingRange;
-                    NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
-                    SetDestination(navPos.position);
                 }
-                
-                LookAtDirection(agentTarget.position);
+                else {
+                    if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ally in range  and ready to atk
+                        SwitchAgentState(AgentStatus.Attacking);
+                    } 
+                    else if (timeBtwAtkTimer < Time.time) { //ally not in circling range so just avance 
+                        SetDestination(agentTarget.position);
+                    } 
+                    else { //ally in circling range
+                        Vector3 circlingIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * circlingRange;
+                        NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
+                        SetDestination(navPos.position);
+                     }
+                }
+                    
+                if(agentTarget != null)
+                    LookAtDirection(agentTarget.position);
                 EnableAgentMovement(true);
             break;
 
@@ -145,15 +151,27 @@ public class Ennemi_Basic : Agent
         slashPartSystem.Play();
 
         Collider[] hits = Physics.OverlapSphere(transform.position + (agentTarget.position - transform.position).normalized * atkRange / 2, atkRadius);
-        foreach(Collider hit in hits) {
-            if(hit.transform.GetComponent<IsTargeteable>())
-                if(hit.transform.GetComponent<IsTargeteable>().agentType == AgentType.Ally) {
-                    Vector3 knockBarDir = hit.transform.position - transform.position; //
-                    knockBarDir.y = 0;
-                    Vector3 knockbackVector = knockBarDir.normalized * atkKnockback;
-                    hit.GetComponent<HealthSystem>().TakeDamage(atkDamage, knockbackVector);
-                }
+        if(hits.Length > 0) {
+            List<DataTarget> dataTargets = new List<DataTarget>();
+            foreach(Collider hit in hits) {
+                if(hit.transform.GetComponent<IsTargeteable>())
+                    if(hit.transform.GetComponent<IsTargeteable>().agentType == AgentType.Ally) {
+                        dataTargets.Add(new DataTarget(hit, Vector3.Distance(transform.position, hit.transform.position)));
+                    }
+            }
+
+            if(dataTargets.Count > 0) {
+                dataTargets = OrderDataTargetsByDist(dataTargets);
+            }
+            Debug.Log(dataTargets.Count);
+            for(int i = 0; i < ((atkNumTargets > dataTargets.Count)? dataTargets.Count : atkNumTargets); i++) { //in case there is less target to hit than the max number of agent the atk can hit
+                Vector3 knockBarDir = dataTargets[i].col.transform.position - transform.position; 
+                knockBarDir.y = 0;
+                Vector3 knockbackVector = knockBarDir.normalized * atkKnockback;
+                dataTargets[i].col.GetComponent<HealthSystem>().TakeDamage(atkDamage, knockbackVector);
+            } 
         }
+        
         timeBtwAtkTimer = Time.time + timeBtwAtk;
     }
 
