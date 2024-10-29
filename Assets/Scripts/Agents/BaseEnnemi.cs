@@ -53,7 +53,6 @@ public class Ennemi_Basic : Agent
         if(agentTarget != null) { 
             navDistToTarget = NavMaths.DistBtwPoints(transform.position, agentTarget.position);
             if(navDistToTarget > viewRange) agentTarget = null;
-            Debug.Log(agentTarget);
         }
 
         switch(AgStatus) {

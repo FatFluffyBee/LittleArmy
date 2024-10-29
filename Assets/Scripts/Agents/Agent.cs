@@ -73,23 +73,7 @@ public class Agent : MonoBehaviour, ISelectable
     //--------------------------------------------------------
     //MOVEMENT RELATED
     public virtual Vector3 GetPredictedPos(float timeToMove) { //return the predicted position of the object in x seconds
-
-        if(navMeshAgent.path.corners.Length == 0) return transform.position; 
-        
-        Vector3[] path = navMeshAgent.path.corners;
-        float agentSpeed = navMeshAgent.speed;
-
-        for(int i = 1; i < path.Length; i++) {
-            float timeTillNextNode = Vector3.Distance(path[i-1], path[i]) / agentSpeed;
-            if(timeTillNextNode > timeToMove) { //no new path cornet in the time remaining
-                return path[i-1] + timeToMove * agentSpeed * (path[i] - path[i-1]).normalized;
-            }
-            else { // new path cornet in the time remaining
-                timeToMove -= timeTillNextNode;
-            }
-        }   
-
-        return path[path.Length-1]; //if no path cornet in the time remaining
+        return transform.position + navMeshAgent.velocity * timeToMove;
     }
 
     protected void SetDestination (Vector3 destination){
@@ -146,6 +130,7 @@ public class Agent : MonoBehaviour, ISelectable
         rb.freezeRotation = false;
         gameObject.layer = LayerMask.NameToLayer("ColOnlyTerrain");
         transform.Rotate(Vector3.forward * Random.Range(10, -10) + Vector3.forward * Random.Range(10, -10), 1);
+        SetSelectionFeedbackVisibility(false);
         rd.material.color = Color.grey;
 
         Destroy(navMeshAgent);
@@ -191,7 +176,8 @@ public class Agent : MonoBehaviour, ISelectable
         rd.material.color = baseColor;
     }
     public void SetSelectionFeedbackVisibility(bool status) {
-        fbSelectionObject.SetActive(status);
+        if(fbSelectionObject != null)
+            fbSelectionObject.SetActive(status);
     }
 
     protected void DebugPath() {
@@ -240,6 +226,22 @@ public class Agent : MonoBehaviour, ISelectable
             }
         }        
         return dataTargets;
+    }
+
+    protected Transform GetRandomTargetInViewRange(float range) {
+        DataTarget dataTarget = new DataTarget();
+
+        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(range, AgentType.Ennemi);
+        potentialTargets = OrderDataTargetsByDist(potentialTargets);
+        if(potentialTargets.Count > 0) {
+            dataTarget = potentialTargets[Random.Range(0, Mathf.Min(3, potentialTargets.Count))]; //TODO what is the best target method?
+        }
+
+        return (dataTarget.col == null)? null : dataTarget.col.transform;
+    }
+
+    protected bool IsTargetInViewRange(Vector3 targetPos, float range) {
+        return Vector3.Distance(targetPos, transform.position) < range;
     }
 
     protected DataTarget FindClosestTargetInNavRange(List<DataTarget> targets) //check if target still valid and then find target if not (do not change until previous target is wrong)   

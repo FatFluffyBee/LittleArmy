@@ -1,9 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEngine.AI;
 
 public class Archer : Agent
 {
@@ -13,9 +12,9 @@ public class Archer : Agent
     [SerializeField] private float reloadTime;
     [SerializeField] private Vector2 timeToChargeRange;
     [SerializeField] private float atkRange;
-    [SerializeField] private float deviation;
+    [SerializeField] private Vector2 deviationRange;
     [SerializeField] private Vector2 airTimeRange;
-    [SerializeField] private float gravityMul;
+    [SerializeField] private Vector2 gravityMulRange;
     [SerializeField] private float damage;
     [SerializeField] private float knockbackForce;
     private float reloadTimeTimer;
@@ -27,6 +26,7 @@ public class Archer : Agent
     private Transform target;
     private Transform disrupterTarget;
     [SerializeField] private float disruptRange = 5f;
+    [SerializeField] private float softMaxFleeingRange = 10f;
 
     [Header("Debug Trajectory")]
     private LineRenderer lineRd;
@@ -36,15 +36,18 @@ public class Archer : Agent
     void Start(){
         lineRd = GetComponent<LineRenderer>();
     }
+
     void Update(){ //todo recompile
         BaseUpdate();
 
-        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(atkRange, AgentType.Ennemi);
-        potentialTargets = OrderDataTargetsByDist(potentialTargets);
-        if(potentialTargets.Count > 0) {
-            target = potentialTargets[0].col.transform;
+        if(target == null) {
+            target = GetRandomTargetInViewRange(atkRange);
+        } else if(!IsTargetInViewRange(target.position, atkRange) || !target.GetComponent<IsTargeteable>()) {
+            target = null;
+            target = GetRandomTargetInViewRange(atkRange);
         }
 
+        disrupterTarget = null;
         List<DataTarget> potentialThreats = GetDataTargetsInViewRange(disruptRange, AgentType.Ennemi); 
         DataTarget disruptDataTarget = FindClosestTargetInNavRange(potentialThreats);
         
@@ -53,17 +56,11 @@ public class Archer : Agent
                 SwitchAgentState(AgentStatus.Fleeing);
                 disrupterTarget = disruptDataTarget.col.transform;
             }
-            else {
-                disrupterTarget = null;
-            }
-        else {
-            disrupterTarget = null;
-        }
 
         switch(AgStatus) {
             case AgentStatus.Idle : //dont move but attack if in range
                 if(target != null && reloadTimeTimer < Time.time) {
-                    SwitchAgentState(AgentStatus.Charging);
+                    SwitchAgentState(AgentStatus.Attacking);
                     timeToCharge = Random.Range(timeToChargeRange.x, timeToChargeRange.y);
                     timeToChargeCount = timeToCharge + Time.time;
                 }
@@ -72,7 +69,10 @@ public class Archer : Agent
                     SetDestination(homePoint);
                 }
 
-                LookAtDirection(transform.position + Vector3.forward);
+                if(target != null)
+                    LookAtDirection(target.position);
+                else
+                    LookAtDirection(transform.position + Vector3.forward);
                 EnableAgentMovement(false);
             break;
 
@@ -81,30 +81,40 @@ public class Archer : Agent
                     SwitchAgentState(AgentStatus.Idle);
                 }
 
-                if(navMeshAgent.path.corners.Length > 1) LookAtDirection(navMeshAgent.path.corners[1]);
+                if(navMeshAgent.path.corners.Length > 1) 
+                    LookAtDirection(navMeshAgent.path.corners[1]);
                 EnableAgentMovement(true);
                 break;
 
             case AgentStatus.Fleeing :
-                if(disrupterTarget == null)
+                if(disrupterTarget == null) {
                     SwitchAgentState(AgentStatus.Idle);
-                    SetDestination(homePoint);
+                    SetDestination(homePoint); 
+
+                    LookAtDirection(homePoint);
+                } else {
+                    //agent run away from ennemy but not too fire away from homepoint so its not a big mess
+                    float ratioDistanceHomePointMax = Mathf.Clamp01(1 - Vector3.Distance(transform.position, homePoint) / softMaxFleeingRange);
+                    Vector3 fleeingIdealPos = transform.position - (disrupterTarget.position - transform.position).normalized * (disruptRange + 1f) * ratioDistanceHomePointMax;
+                    NavMesh.SamplePosition(fleeingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
+                    SetDestination(navPos.position);
+
+                    LookAtDirection(disrupterTarget.position);
+                }
                 EnableAgentMovement(true);
             break;
 
-            case AgentStatus.Charging :
-                if(potentialTargets.Count == 0)
+            case AgentStatus.Attacking :
+                if(target == null) {
                     SwitchAgentState(AgentStatus.Idle);
+                } 
+                else {
+                    if(timeToChargeCount < Time.time) {
+                        readyToFire = true;
+                    }
 
-                if(timeToChargeCount < Time.time) {
-                    SwitchAgentState(AgentStatus.Attacking);
-                }
-                EnableAgentMovement(false);
-            break;
-
-            case AgentStatus.Attacking : //attack the ennemy
-                readyToFire = true;
-                SwitchAgentState(AgentStatus.Idle);
+                    LookAtDirection(target.position);
+                }  
                 EnableAgentMovement(false);
             break;
         }  
@@ -112,19 +122,32 @@ public class Archer : Agent
 
     void FixedUpdate(){ 
         if(readyToFire){
-            FireProjectile();
-            reloadTimeTimer = Time.time + reloadTime;
-            readyToFire = false;
+            LaunchAttack();
         }
+    }
+
+    void LaunchAttack() {
+        if(target == null) {
+            readyToFire = false; //cause we fire on fixedupdate there can be dissonance where the target is outrange the next frame before and so it create infinite error loop
+            return;
+        } 
+
+        FireProjectile();
+        reloadTimeTimer = Time.time + reloadTime;
+        readyToFire = false;
+        SwitchAgentState(AgentStatus.Idle);
+        target = null; //reset target so it can focus an another one closer if needed
     }
 
     void FireProjectile(){
         float range01 = Vector3.Distance(target.transform.position, launchPoint.position) / atkRange;
         float airTimeFromDist = airTimeRange.x + (airTimeRange.y - airTimeRange.x) * range01; //retourne le temps que met la flèche pour attendre sa cible en fonction de la distance à celle-ci
+        float gravityMulFromDist = gravityMulRange.x + (gravityMulRange.y - gravityMulRange.x) * range01; 
+        float deviationFromDist = deviationRange.x + (deviationRange.y - deviationRange.x) * range01; 
 
         Vector3 ennemiFuturePos = target.GetComponent<Agent>().GetPredictedPos(airTimeFromDist);
 
-        Vector3 initialVelocity = TrajMaths.InitialVelocityForBellTrajectory(launchPoint.position, ennemiFuturePos, airTimeFromDist, deviation, gravityMul);
+        Vector3 initialVelocity = TrajMaths.InitialVelocityForBellTrajectory(launchPoint.position, ennemiFuturePos, airTimeFromDist, deviationFromDist, gravityMulFromDist);
 
         if(debug){
             Vector3 pos = launchPoint.position;
@@ -133,7 +156,7 @@ public class Archer : Agent
             lineRd.SetPosition(0, pos);
             for(int i = 0; i < stepNumbers; i++)        {
                 pos += velocity * stepDuration;
-                velocity += Physics.gravity * stepDuration * gravityMul;
+                velocity += Physics.gravity * stepDuration * gravityMulFromDist;
                 
                 lineRd.SetPosition(i+1, pos);
             }
@@ -141,7 +164,7 @@ public class Archer : Agent
 
         GameObject instance = Instantiate(arrowPrefab, launchPoint.transform.position, Quaternion.identity);
         instance.GetComponent<Rigidbody>().velocity = initialVelocity;
-        instance.GetComponent<GravityAmplifier>().Initialize(gravityMul);
+        instance.GetComponent<GravityAmplifier>().Initialize(gravityMulFromDist);
         instance.GetComponent<Projectile>().Initialize(damage, knockbackForce, transform.position, AgentType.Ennemi);
     }
 

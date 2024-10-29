@@ -182,13 +182,14 @@ MonoBehaviour:
   launchPoint: {fileID: 2181176863193463671}
   reloadTime: 2
   timeToChargeRange: {x: 1, y: 1.5}
-  atkRange: 20
-  deviation: 2
-  airTimeRange: {x: 0.4, y: 1.2}
-  gravityMul: 10
+  atkRange: 25
+  deviationRange: {x: 2, y: 5}
+  airTimeRange: {x: 0.1, y: 0.6}
+  gravityMulRange: {x: 5, y: 20}
   damage: 2
-  knockbackForce: 15
-  disruptRange: 5
+  knockbackForce: 5
+  disruptRange: 3
+  softMaxFleeingRange: 5
   stepDuration: 0.02
   stepNumbers: 200
 --- !u!114 &7346653644100394208
