@@ -50,7 +50,6 @@ public class MouseInput : MonoBehaviour
                     break;
 
                     case AgentType.Ennemi :
-                        Debug.Log("I do nothing");
                     break;
                 }   
             }

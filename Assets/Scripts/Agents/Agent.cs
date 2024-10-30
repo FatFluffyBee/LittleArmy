@@ -132,6 +132,7 @@ public class Agent : MonoBehaviour, ISelectable
         transform.Rotate(Vector3.forward * Random.Range(10, -10) + Vector3.forward * Random.Range(10, -10), 1);
         SetSelectionFeedbackVisibility(false);
         rd.material.color = Color.grey;
+        transform.parent = null;
 
         Destroy(navMeshAgent);
         Destroy(this);
@@ -193,7 +194,12 @@ public class Agent : MonoBehaviour, ISelectable
         transform.LookAt(dir);
     }
 
-    protected List<DataTarget> GetDataTargetsInViewRange(float range, AgentType agentType) 
+    //----------------------------------------------------------------
+    //TARGETING RELATED FUNCTIONS
+    //----------------------------------------------------------------
+
+    //Target seeking
+    protected List<DataTarget> GetDataTargetsInRange(float range, AgentType agentType, DistMode distMode) 
     {
         List<DataTarget> targets = new List<DataTarget>();
 
@@ -204,7 +210,12 @@ public class Agent : MonoBehaviour, ISelectable
             foreach(Collider c in hits){
                 if(c.transform.GetComponent<IsTargeteable>()) {
                     if(c.transform.GetComponent<IsTargeteable>().agentType == agentType){ 
-                        targets.Add(new DataTarget(c, Vector3.Distance(transform.position, c.transform.position)));
+                        float distance;
+                        if(distMode == DistMode.View)
+                            distance = Vector3.Distance(transform.position, c.transform.position);
+                        else 
+                            distance = NavMaths.DistBtwPoints(transform.position, c.transform.position);
+                        targets.Add(new DataTarget(c, distance));
                     }
                 }
             }
@@ -228,38 +239,48 @@ public class Agent : MonoBehaviour, ISelectable
         return dataTargets;
     }
 
-    protected Transform GetRandomTargetInViewRange(float range) {
-        DataTarget dataTarget = new DataTarget();
+    protected Transform GetClosestTargetInRange(float Range, AgentType agentType, DistMode distMode, out float dist) {
+        List<DataTarget> dataTargets = GetDataTargetsInRange(Range, agentType, distMode);
+        dataTargets = OrderDataTargetsByDist(dataTargets);
 
-        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(range, AgentType.Ennemi);
-        potentialTargets = OrderDataTargetsByDist(potentialTargets);
-        if(potentialTargets.Count > 0) {
-            dataTarget = potentialTargets[Random.Range(0, Mathf.Min(3, potentialTargets.Count))]; //TODO what is the best target method?
+        if(dataTargets.Count > 0) {
+            dist = dataTargets[0].dist;
+            return dataTargets[0].col.transform;
         }
 
-        return (dataTarget.col == null)? null : dataTarget.col.transform;
+        dist = Mathf.Infinity;
+        return null;
     }
 
-    protected bool IsTargetInViewRange(Vector3 targetPos, float range) {
-        return Vector3.Distance(targetPos, transform.position) < range;
+    protected Transform GetRandomTargetInRange(float Range, AgentType agentType, DistMode distMode, out float dist, int maxTarget) {
+        List<DataTarget> dataTargets = GetDataTargetsInRange(Range, agentType, distMode);
+        dataTargets = OrderDataTargetsByDist(dataTargets);
+
+        if(dataTargets.Count > 0) {
+            int randomIndex = Random.Range(0, Mathf.Min(maxTarget, dataTargets.Count));
+            dist = dataTargets[randomIndex].dist;
+            return dataTargets[randomIndex].col.transform;
+        }
+
+        dist = Mathf.Infinity;
+        return null;
     }
 
-    protected DataTarget FindClosestTargetInNavRange(List<DataTarget> targets) //check if target still valid and then find target if not (do not change until previous target is wrong)   
-    {  
-        float minDistance = float.MaxValue;
-        DataTarget target = new DataTarget();
+    //Target verifying
 
-        for(int i = 0; i < targets.Count; i++) {
-            float curentDistance = targets[i].dist;
-
-            if(minDistance > curentDistance) {
-                minDistance = curentDistance;
-                target = targets[i];
-            }
-        }              
-               
-        return target;
+    protected bool IsTargetValid(Transform target, float range) {
+        if(target == null) return false;
+        return IsTargetInRange(target, range) && IsTargetTargeatable(target);
     }
+
+    protected bool IsTargetInRange(Transform target, float range) {
+        return Vector3.Distance(target.position, transform.position) < range;
+    }
+
+    protected bool IsTargetTargeatable(Transform target) {
+        return target.GetComponent<IsTargeteable>() != null;
+    }
+    
 
     protected void EnableAgentMovement(bool choice) {
         navMeshAgent.isStopped = !choice;
@@ -314,3 +335,5 @@ public class Agent : MonoBehaviour, ISelectable
             this.dist = distance;
         }
     }
+
+    public enum DistMode {View, Nav}

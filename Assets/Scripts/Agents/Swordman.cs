@@ -34,19 +34,7 @@ public class Swordman : Agent
 
         target = null;
         navDistToHome = NavMaths.DistBtwPoints(transform.position, homePoint);
-        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(aggroRange, AgentType.Ennemi);
-
-        DataTarget dataTarget = FindClosestTargetInNavRange(potentialTargets);
-        if(dataTarget.col != null)
-            target = dataTarget.col.transform;
-
-        if(target != null) { 
-            navDistToTarget = NavMaths.DistBtwPoints(transform.position, target.position);
-            if(navDistToTarget > aggroRange) target = null;
-        }
-        else {
-            navDistToTarget = Mathf.Infinity;
-        }
+        target = GetClosestTargetInRange(aggroRange, AgentType.Ennemi, DistMode.Nav, out navDistToTarget);
 
         switch(AgStatus) {
             case AgentStatus.Idle : //dont move but attack if in range

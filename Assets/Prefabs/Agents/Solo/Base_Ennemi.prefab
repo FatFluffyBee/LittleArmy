@@ -145,7 +145,7 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 0.5
   debug: 0
-  viewRange: 10
+  aggroRange: 10
   circlingRange: 3
   atkRange: 2
   slashPartSystem: {fileID: 5017966175624832214}

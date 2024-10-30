@@ -27,6 +27,7 @@ public class Archer : Agent
     private Transform disrupterTarget;
     [SerializeField] private float disruptRange = 5f;
     [SerializeField] private float softMaxFleeingRange = 10f;
+    [SerializeField] private int maxTargetRandomPick = 5;
 
     [Header("Debug Trajectory")]
     private LineRenderer lineRd;
@@ -40,22 +41,13 @@ public class Archer : Agent
     void Update(){ //todo recompile
         BaseUpdate();
 
-        if(target == null) {
-            target = GetRandomTargetInViewRange(atkRange);
-        } else if(!IsTargetInViewRange(target.position, atkRange) || !target.GetComponent<IsTargeteable>()) {
-            target = null;
-            target = GetRandomTargetInViewRange(atkRange);
-        }
+        if(!IsTargetValid(target, atkRange))
+            target = GetRandomTargetInRange(atkRange, AgentType.Ennemi, DistMode.View, out float x, maxTargetRandomPick);
 
-        disrupterTarget = null;
-        List<DataTarget> potentialThreats = GetDataTargetsInViewRange(disruptRange, AgentType.Ennemi); 
-        DataTarget disruptDataTarget = FindClosestTargetInNavRange(potentialThreats);
-        
-        if(disruptDataTarget.col != null)
-            if(disruptDataTarget.dist < disruptRange && AgStatus != AgentStatus.Travelling) {
+        disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, DistMode.Nav, out float d);
+        if(disrupterTarget != null && AgStatus != AgentStatus.Travelling){
                 SwitchAgentState(AgentStatus.Fleeing);
-                disrupterTarget = disruptDataTarget.col.transform;
-            }
+        }
 
         switch(AgStatus) {
             case AgentStatus.Idle : //dont move but attack if in range
@@ -93,7 +85,7 @@ public class Archer : Agent
 
                     LookAtDirection(homePoint);
                 } else {
-                    //agent run away from ennemy but not too fire away from homepoint so its not a big mess
+                    //agent run away from ennemy but not too fire away from homepoint so its not a big mess (it still is)
                     float ratioDistanceHomePointMax = Mathf.Clamp01(1 - Vector3.Distance(transform.position, homePoint) / softMaxFleeingRange);
                     Vector3 fleeingIdealPos = transform.position - (disrupterTarget.position - transform.position).normalized * (disruptRange + 1f) * ratioDistanceHomePointMax;
                     NavMesh.SamplePosition(fleeingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);

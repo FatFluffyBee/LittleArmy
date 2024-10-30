@@ -9,7 +9,7 @@ public class Ennemi_Basic : Agent
     private Transform agentTarget;
     private float navDistToTarget;
     private Castle buildingTarget;
-    [SerializeField] private float viewRange;
+    [SerializeField] private float aggroRange;
     [SerializeField] private float circlingRange;
     [SerializeField] private float atkRange;
     
@@ -42,18 +42,8 @@ public class Ennemi_Basic : Agent
     void Update()
     { 
         BaseUpdate();
-
-        agentTarget = null;
-        List<DataTarget> potentialTargets = GetDataTargetsInViewRange(viewRange, AgentType.Ally);
-        DataTarget closestTarget = FindClosestTargetInNavRange(potentialTargets);
-
-        if(closestTarget.col != null)
-            agentTarget = closestTarget.col.transform;
         
-        if(agentTarget != null) { 
-            navDistToTarget = NavMaths.DistBtwPoints(transform.position, agentTarget.position);
-            if(navDistToTarget > viewRange) agentTarget = null;
-        }
+        agentTarget = GetClosestTargetInRange(aggroRange, AgentType.Ally, DistMode.Nav, out navDistToTarget);
 
         switch(AgStatus) {
             case AgentStatus.SeekAgent :
@@ -162,7 +152,6 @@ public class Ennemi_Basic : Agent
             if(dataTargets.Count > 0) {
                 dataTargets = OrderDataTargetsByDist(dataTargets);
             }
-            Debug.Log(dataTargets.Count);
             for(int i = 0; i < ((atkNumTargets > dataTargets.Count)? dataTargets.Count : atkNumTargets); i++) { //in case there is less target to hit than the max number of agent the atk can hit
                 Vector3 knockBarDir = dataTargets[i].col.transform.position - transform.position; 
                 knockBarDir.y = 0;
@@ -177,7 +166,7 @@ public class Ennemi_Basic : Agent
     private void OnDrawGizmos() {
         if(debug) {
             Gizmos.color = Color.green; 
-            Gizmos.DrawWireSphere(transform.position, viewRange); //Draw range
+            Gizmos.DrawWireSphere(transform.position, aggroRange); //Draw range
             Gizmos.color = Color.yellow; 
             Gizmos.DrawWireSphere(transform.position, circlingRange); //Draw range
             Gizmos.color = Color.red; 
