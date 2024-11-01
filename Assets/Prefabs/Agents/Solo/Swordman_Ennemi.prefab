@@ -100,7 +100,7 @@ GameObject:
   - component: {fileID: 6686685479653302581}
   - component: {fileID: -5384848823211922022}
   m_Layer: 8
-  m_Name: Base_Ennemi
+  m_Name: Swordman_Ennemi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

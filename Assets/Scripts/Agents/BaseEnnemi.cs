@@ -87,7 +87,7 @@ public class Ennemi_Basic : Agent
 
                 if(NavMesh.SamplePosition(buildingTarget.transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
                     if(bldAtkCdTimer < Time.time && NavMaths.DistBtwPoints(transform.position, hit.position) < bldAtkRange) {
-                        SwitchAgentState(AgentState.Charging);
+                        SwitchAgentState(AgentState.AttackBuilding);
                         bldAtkChargeTimer = bldAtkChargeTime + Time.time;
                     }
                     else {
@@ -100,7 +100,7 @@ public class Ennemi_Basic : Agent
                 EnableAgentMovement(true);
             break;
 
-            case AgentState.Charging :
+            case AgentState.AttackBuilding :
                 if(buildingTarget == null) {
                         SwitchAgentState(AgentState.SeekBuilding);
                 }
@@ -110,20 +110,13 @@ public class Ennemi_Basic : Agent
                     }
 
                     if(bldAtkChargeTimer < Time.time) {
-                        SwitchAgentState(AgentState.AttackBuilding);
+                        LaunchBuildingAttack();
+                        SwitchAgentState(AgentState.SeekBuilding);
                     }
 
                     LookAtDirection(buildingTarget.transform.position); 
                     EnableAgentMovement(false);
                 }
-            break;
-
-            case AgentState.AttackBuilding :
-                LaunchBuildingAttack();
-                SwitchAgentState(AgentState.SeekBuilding);
-                    
-                LookAtDirection(buildingTarget.transform.position);
-                EnableAgentMovement(false);
             break;
         }
     }

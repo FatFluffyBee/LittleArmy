@@ -30,9 +30,9 @@ public class Archer : Agent
     [SerializeField] private int maxTargetRandomPick = 5;
 
     [Header("Debug Trajectory")]
+    [SerializeField] private float stepDuration;
+    [SerializeField] private int stepNumbers;
     private LineRenderer lineRd;
-    public float stepDuration;
-    public int stepNumbers;
     
     void Start(){
         lineRd = GetComponent<LineRenderer>();
