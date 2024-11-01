@@ -42,22 +42,22 @@ public class Archer : Agent
         BaseUpdate();
 
         if(!IsTargetValid(target, atkRange))
-            target = GetRandomTargetInRange(atkRange, AgentType.Ennemi, DistMode.View, out float x, maxTargetRandomPick);
+            target = GetRandomTargetInRange(atkRange, AgentType.Ennemi, TargetType.All, DistMode.View, out float x, maxTargetRandomPick);
 
-        disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, DistMode.Nav, out float d);
-        if(disrupterTarget != null && AgStatus != AgentStatus.Travelling){
-                SwitchAgentState(AgentStatus.Fleeing);
+        disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float d);
+        if(disrupterTarget != null && currentState != AgentState.Travelling){
+            SwitchAgentState(AgentState.Fleeing);
         }
 
-        switch(AgStatus) {
-            case AgentStatus.Idle : //dont move but attack if in range
+        switch(currentState) {
+            case AgentState.Idle : //dont move but attack if in range
                 if(target != null && reloadTimeTimer < Time.time) {
-                    SwitchAgentState(AgentStatus.Attacking);
+                    SwitchAgentState(AgentState.Attacking);
                     timeToCharge = Random.Range(timeToChargeRange.x, timeToChargeRange.y);
                     timeToChargeCount = timeToCharge + Time.time;
                 }
                 else if(target == null && !IsAgentAtHomePoint()) {
-                    SwitchAgentState(AgentStatus.Travelling);
+                    SwitchAgentState(AgentState.Travelling);
                     SetDestination(homePoint);
                 }
 
@@ -68,9 +68,9 @@ public class Archer : Agent
                 EnableAgentMovement(false);
             break;
 
-            case AgentStatus.Travelling : //travelling to a new spot)
+            case AgentState.Travelling : //travelling to a new spot)
                 if(IsAgentAtDestination()) {
-                    SwitchAgentState(AgentStatus.Idle);
+                    SwitchAgentState(AgentState.Idle);
                 }
 
                 if(navMeshAgent.path.corners.Length > 1) 
@@ -78,9 +78,9 @@ public class Archer : Agent
                 EnableAgentMovement(true);
                 break;
 
-            case AgentStatus.Fleeing :
+            case AgentState.Fleeing :
                 if(disrupterTarget == null) {
-                    SwitchAgentState(AgentStatus.Idle);
+                    SwitchAgentState(AgentState.Idle);
                     SetDestination(homePoint); 
 
                     LookAtDirection(homePoint);
@@ -96,9 +96,9 @@ public class Archer : Agent
                 EnableAgentMovement(true);
             break;
 
-            case AgentStatus.Attacking :
+            case AgentState.Attacking :
                 if(target == null) {
-                    SwitchAgentState(AgentStatus.Idle);
+                    SwitchAgentState(AgentState.Idle);
                 } 
                 else {
                     if(timeToChargeCount < Time.time) {
@@ -127,7 +127,7 @@ public class Archer : Agent
         FireProjectile();
         reloadTimeTimer = Time.time + reloadTime;
         readyToFire = false;
-        SwitchAgentState(AgentStatus.Idle);
+        SwitchAgentState(AgentState.Idle);
         target = null; //reset target so it can focus an another one closer if needed
     }
 

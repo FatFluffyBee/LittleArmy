@@ -152,11 +152,9 @@ MonoBehaviour:
   atkRange: 2
   atkRadius: 2
   atkDamage: 1
-  atkKnockback: 15
+  atkKnockback: 5
   timeBtwAtk: 1.5
   slashPartSystem: {fileID: 8637674244510264989}
-  target: {fileID: 0}
-  timeBtwTargetCheck: 0.2
 --- !u!114 &8355333354777030581
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -372,6 +370,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agentType: 0
+  isRange: 0
 --- !u!1 &9024180786753255186
 GameObject:
   m_ObjectHideFlags: 0

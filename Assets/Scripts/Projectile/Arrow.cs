@@ -18,12 +18,18 @@ public class Arrow : Projectile
     void OnCollisionEnter(Collision other) 
     {
         sound.Play();
-        if(other.transform.GetComponent<IsTargeteable>()?.agentType == agentType) {
+        /*if(other.transform.GetComponent<IsTargeteable>()?.agentType == agentType) {
             Vector3 knockBarDir = other.transform.position - origin; //
             knockBarDir.y = 0;
             Vector3 knockbackVector = knockBarDir.normalized * knockbackForce;
             other.transform.GetComponent<HealthSystem>()?.TakeDamage(damage, knockbackVector);
-        }
+        }*/
+    
+        Vector3 knockBarDir = other.transform.position - origin; 
+        knockBarDir.y = 0;
+        Vector3 knockbackVector = knockBarDir.normalized * knockbackForce;
+        other.transform.GetComponent<HealthSystem>()?.TakeDamage(damage, knockbackVector);
+
         if(other.transform.GetComponent<Agent>()) //cause of feedbacks pb for agents
             transform.SetParent(other.transform.GetComponent<Agent>().rd.transform);
         else

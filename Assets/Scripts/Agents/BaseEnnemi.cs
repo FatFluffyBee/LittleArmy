@@ -36,23 +36,23 @@ public class Ennemi_Basic : Agent
     void Start()
     {
         Initialize(null, Color.black);
-        AgStatus = AgentStatus.SeekBuilding;
+        currentState = AgentState.SeekBuilding;
     }
 
     void Update()
     { 
         BaseUpdate();
         
-        agentTarget = GetClosestTargetInRange(aggroRange, AgentType.Ally, DistMode.Nav, out navDistToTarget);
+        agentTarget = GetClosestTargetInRange(aggroRange, AgentType.Ally, TargetType.All, DistMode.Nav, out navDistToTarget);
 
-        switch(AgStatus) {
-            case AgentStatus.SeekAgent :
+        switch(currentState) {
+            case AgentState.SeekAgent :
                 if(agentTarget == null) {
-                    SwitchAgentState(AgentStatus.SeekBuilding);
+                    SwitchAgentState(AgentState.SeekBuilding);
                 }
                 else {
                     if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ally in range  and ready to atk
-                        SwitchAgentState(AgentStatus.Attacking);
+                        SwitchAgentState(AgentState.Attacking);
                     } 
                     else if (timeBtwAtkTimer < Time.time) { //ally not in circling range so just avance 
                         SetDestination(agentTarget.position);
@@ -69,17 +69,17 @@ public class Ennemi_Basic : Agent
                 EnableAgentMovement(true);
             break;
 
-            case AgentStatus.Attacking :
+            case AgentState.Attacking :
                 LaunchSlashAttack();
-                SwitchAgentState(AgentStatus.SeekAgent);
+                SwitchAgentState(AgentState.SeekAgent);
 
                 LookAtDirection(agentTarget.position);
                 EnableAgentMovement(false);
             break;
 
-            case AgentStatus.SeekBuilding :
+            case AgentState.SeekBuilding :
                 if(agentTarget != null) {
-                    AgStatus = AgentStatus.SeekAgent;
+                    currentState = AgentState.SeekAgent;
                 }
                 
                 if(buildingTarget == null)
@@ -87,7 +87,7 @@ public class Ennemi_Basic : Agent
 
                 if(NavMesh.SamplePosition(buildingTarget.transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
                     if(bldAtkCdTimer < Time.time && NavMaths.DistBtwPoints(transform.position, hit.position) < bldAtkRange) {
-                        SwitchAgentState(AgentStatus.Charging);
+                        SwitchAgentState(AgentState.Charging);
                         bldAtkChargeTimer = bldAtkChargeTime + Time.time;
                     }
                     else {
@@ -100,17 +100,17 @@ public class Ennemi_Basic : Agent
                 EnableAgentMovement(true);
             break;
 
-            case AgentStatus.Charging :
+            case AgentState.Charging :
                 if(buildingTarget == null) {
-                        SwitchAgentState(AgentStatus.SeekBuilding);
+                        SwitchAgentState(AgentState.SeekBuilding);
                 }
                 else {
                     if(agentTarget != null) {
-                        AgStatus = AgentStatus.SeekAgent;
+                        currentState = AgentState.SeekAgent;
                     }
 
                     if(bldAtkChargeTimer < Time.time) {
-                        SwitchAgentState(AgentStatus.AttackBuilding);
+                        SwitchAgentState(AgentState.AttackBuilding);
                     }
 
                     LookAtDirection(buildingTarget.transform.position); 
@@ -118,9 +118,9 @@ public class Ennemi_Basic : Agent
                 }
             break;
 
-            case AgentStatus.AttackBuilding :
+            case AgentState.AttackBuilding :
                 LaunchBuildingAttack();
-                SwitchAgentState(AgentStatus.SeekBuilding);
+                SwitchAgentState(AgentState.SeekBuilding);
                     
                 LookAtDirection(buildingTarget.transform.position);
                 EnableAgentMovement(false);

@@ -22,9 +22,8 @@ public class Swordman : Agent
    [SerializeField] private ParticleSystem slashPartSystem;
 
     [Header("Targetting")]
-    [SerializeField] private Transform target;
-    public float timeBtwTargetCheck = 0.2f;
-    private bool returnHome = false;
+    protected Transform target;
+    protected bool returnHome = false;
 
     private float navDistToTarget;
     private float navDistToHome;
@@ -32,64 +31,79 @@ public class Swordman : Agent
     void Update(){ 
         BaseUpdate();
 
-        target = null;
         navDistToHome = NavMaths.DistBtwPoints(transform.position, homePoint);
-        target = GetClosestTargetInRange(aggroRange, AgentType.Ennemi, DistMode.Nav, out navDistToTarget);
+        target = GetClosestTargetInRange(aggroRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out navDistToTarget);
 
-        switch(AgStatus) {
-            case AgentStatus.Idle : //dont move but attack if in range
-                if(target != null) SwitchAgentState(AgentStatus.Following);
-                if(!IsAgentAtHomePoint()) {
-                    SwitchAgentState(AgentStatus.Travelling);
-                    SetDestination(homePoint);
-                }
-                returnHome = false;
-                LookAtDirection(transform.position + Vector3.forward);
-                EnableAgentMovement(false);
+        switch(currentState) {
+            case AgentState.Idle : //dont move but attack if in range
+                DoIdle();
             break;
 
-            case AgentStatus.Travelling : //travelling to a new spot)
-                if(target != null) SwitchAgentState(AgentStatus.Following);
-                else if(IsAgentAtDestination()) {
-                    SwitchAgentState(AgentStatus.Idle);
-                    asBeenMoveOrdered = false;
-                }
-
-                if(navMeshAgent.path.corners.Length > 1) LookAtDirection(navMeshAgent.path.corners[1]);
-                EnableAgentMovement(true);
+            case AgentState.Travelling : //travelling to a new spot)
+                DoTravelling();
                 break;
 
-            case AgentStatus.Following : //follow an ennemy trail to get in attack range      
-                if(navDistToTarget > aggroRange || target == null || returnHome) {  //ennemi out of aggro zone or no ennemy
-                    SwitchAgentState(AgentStatus.Travelling);
-                    SetDestination(homePoint);
-                }
-                else if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ennemi in range  and ready to atk
-                    SwitchAgentState(AgentStatus.Attacking);
-                } 
-                else if (navDistToTarget < circlingRange && timeBtwAtkTimer < Time.time) { //ennemi not in circling range so just avance 
-                    SetDestination(target.position);
-                } 
-                else { //ennemi in circling range
-                    Vector3 circlingIdealPos = target.position + (transform.position - target.position).normalized * circlingRange;
-                    NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
-                    SetDestination(navPos.position);
-                }
-                
-                if(target != null)
-                    LookAtDirection(target.position);
-                EnableAgentMovement(true);
+            case AgentState.Following : //follow an ennemy trail to get in attack range      
+                DoFollowing();
             break;
 
-            case AgentStatus.Attacking : //attack the ennemy
-                LaunchSlashAttack();
-                SwitchAgentState(AgentStatus.Following);
-                EnableAgentMovement(false);
-                if(asBeenMoveOrdered && navDistToHome > aggroRange * 2) returnHome = true;
+            case AgentState.Attacking : //attack the ennemy
+                DoAttacking();
             break;
         }
 
         //UpdateRotation(circlingRange, navDistToTarget, target);
+    }
+
+    protected virtual void DoIdle() {
+        if(target != null) SwitchAgentState(AgentState.Following);
+        if(!IsAgentAtHomePoint()) {
+            SwitchAgentState(AgentState.Travelling);
+            SetDestination(homePoint);
+        }
+        returnHome = false;
+        LookAtDirection(transform.position + Vector3.forward);
+        EnableAgentMovement(false);
+    }
+
+    private void DoTravelling() {
+        if(target != null) SwitchAgentState(AgentState.Following);
+        else if(IsAgentAtDestination()) {
+            SwitchAgentState(AgentState.Idle);
+            asBeenMoveOrdered = false;
+        }
+
+        if(navMeshAgent.path.corners.Length > 1) LookAtDirection(navMeshAgent.path.corners[1]);
+        EnableAgentMovement(true);
+    }
+
+    private void DoFollowing() {
+        if(navDistToTarget > aggroRange || target == null || returnHome) {  //ennemi out of aggro zone or no ennemy
+            SwitchAgentState(AgentState.Travelling);
+            SetDestination(homePoint);
+        }
+        else if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ennemi in range  and ready to atk
+            SwitchAgentState(AgentState.Attacking);
+        } 
+        else if (navDistToTarget < circlingRange && timeBtwAtkTimer < Time.time) { //ennemi not in circling range so just avance 
+            SetDestination(target.position);
+        } 
+        else { //ennemi in circling range
+            Vector3 circlingIdealPos = target.position + (transform.position - target.position).normalized * circlingRange;
+            NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
+            SetDestination(navPos.position);
+        }
+        
+        if(target != null)
+            LookAtDirection(target.position);
+        EnableAgentMovement(true);
+    }
+
+    private void DoAttacking() {
+        LaunchSlashAttack();
+        SwitchAgentState(AgentState.Following);
+        EnableAgentMovement(false);
+        if(asBeenMoveOrdered && navDistToHome > aggroRange * 2) returnHome = true;
     }
 
     private void LaunchSlashAttack() {

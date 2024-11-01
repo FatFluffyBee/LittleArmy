@@ -7,7 +7,9 @@ using Random = UnityEngine.Random;
 
 public class Agent : MonoBehaviour, ISelectable
 {
-    public AgentStatus AgStatus { get; set; }
+    protected AgentState currentState { get; set; }
+    protected AgentState previousState;
+
     public SuperAgent SuperAgent {get; set;}
     protected NavMeshAgent navMeshAgent;
     public Renderer rd;
@@ -19,7 +21,8 @@ public class Agent : MonoBehaviour, ISelectable
     protected bool isCenterAgent = false;
     protected bool asBeenMoveOrdered = false;
     protected Color unitColor;
-    protected Vector3 homePoint ;
+    protected Vector3 homePoint;
+    
 
     [Header("Damage Feedback")]
     public float feedbackDuration = 0.4f;
@@ -59,7 +62,7 @@ public class Agent : MonoBehaviour, ISelectable
         FeedbackMovement();
         VisualFeedbackHit();
         if(pathBallDisplay != null && asBeenMoveOrdered) 
-            if(isCenterAgent && AgStatus == AgentStatus.Travelling)
+            if(isCenterAgent && currentState == AgentState.Travelling)
                 pathBallDisplay.DisplayUnitPathWithBalls(navMeshAgent.path.corners.ToList());
 
         if(!rb.isKinematic) {
@@ -82,7 +85,7 @@ public class Agent : MonoBehaviour, ISelectable
 
     public void GiveMoveOrder(Vector3 destination) {
         SetDestination(destination);
-        AgStatus = AgentStatus.Travelling;
+        currentState = AgentState.Travelling;
         homePoint = destination;
         asBeenMoveOrdered = true;
     }
@@ -199,8 +202,7 @@ public class Agent : MonoBehaviour, ISelectable
     //----------------------------------------------------------------
 
     //Target seeking
-    protected List<DataTarget> GetDataTargetsInRange(float range, AgentType agentType, DistMode distMode) 
-    {
+    protected List<DataTarget> GetDataTargetsInRange(float range, AgentType agentType, TargetType targetType, DistMode distMode) {
         List<DataTarget> targets = new List<DataTarget>();
 
         LayerMask mask = LayerMask.GetMask("Agents");
@@ -210,6 +212,9 @@ public class Agent : MonoBehaviour, ISelectable
             foreach(Collider c in hits){
                 if(c.transform.GetComponent<IsTargeteable>()) {
                     if(c.transform.GetComponent<IsTargeteable>().agentType == agentType){ 
+                        if(targetType == TargetType.Melee && c.transform.GetComponent<IsTargeteable>().isRange) {continue;}
+                        if(targetType == TargetType.Range && !c.transform.GetComponent<IsTargeteable>().isRange) {continue;}
+
                         float distance;
                         if(distMode == DistMode.View)
                             distance = Vector3.Distance(transform.position, c.transform.position);
@@ -239,8 +244,8 @@ public class Agent : MonoBehaviour, ISelectable
         return dataTargets;
     }
 
-    protected Transform GetClosestTargetInRange(float Range, AgentType agentType, DistMode distMode, out float dist) {
-        List<DataTarget> dataTargets = GetDataTargetsInRange(Range, agentType, distMode);
+    protected Transform GetClosestTargetInRange(float range, AgentType agentType, TargetType targetType, DistMode distMode, out float dist) {
+        List<DataTarget> dataTargets = GetDataTargetsInRange(range, agentType, targetType, distMode);
         dataTargets = OrderDataTargetsByDist(dataTargets);
 
         if(dataTargets.Count > 0) {
@@ -252,8 +257,12 @@ public class Agent : MonoBehaviour, ISelectable
         return null;
     }
 
-    protected Transform GetRandomTargetInRange(float Range, AgentType agentType, DistMode distMode, out float dist, int maxTarget) {
-        List<DataTarget> dataTargets = GetDataTargetsInRange(Range, agentType, distMode);
+    protected Transform GetClosestTargetInRange(float range, AgentType agentType, TargetType targetType, DistMode distMode) {
+        return GetClosestTargetInRange(range, agentType, targetType, distMode, out float a);
+    }
+    
+    protected Transform GetRandomTargetInRange(float range, AgentType agentType, TargetType targetType, DistMode distMode, out float dist, int maxTarget) {
+        List<DataTarget> dataTargets = GetDataTargetsInRange(range, agentType, targetType, distMode);
         dataTargets = OrderDataTargetsByDist(dataTargets);
 
         if(dataTargets.Count > 0) {
@@ -266,6 +275,9 @@ public class Agent : MonoBehaviour, ISelectable
         return null;
     }
 
+    protected Transform GetRandomTargetInRange(float range, AgentType agentType, TargetType targetType, DistMode distMode, int maxTarget) {
+        return GetRandomTargetInRange(range, agentType, targetType, distMode, out float a, maxTarget);
+    }
     //Target verifying
 
     protected bool IsTargetValid(Transform target, float range) {
@@ -287,8 +299,8 @@ public class Agent : MonoBehaviour, ISelectable
         feedbackMovement = choice;
     }
 
-    protected void SwitchAgentState(AgentStatus status) {
-        AgStatus = status;
+    protected void SwitchAgentState(AgentState state) {
+        currentState = state;
         //Debug.Log("Switch Agent State to " + status.ToString());
     }
 
@@ -323,7 +335,7 @@ public class Agent : MonoBehaviour, ISelectable
             SuperAgent.MouseExitFeedback();
     }
 }
-    public enum AgentStatus {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling, Charging, Fleeing}
+    public enum AgentState {Idle,  Attacking, Travelling, AttackBuilding, SeekAgent, CircleAgent, AttackAgent, SeekBuilding, Following, Circling, Charging, Fleeing}
 
     public struct DataTarget
     {
@@ -337,3 +349,4 @@ public class Agent : MonoBehaviour, ISelectable
     }
 
     public enum DistMode {View, Nav}
+    public enum TargetType {Melee, Range, All}

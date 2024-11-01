@@ -151,7 +151,7 @@ MonoBehaviour:
   slashPartSystem: {fileID: 5017966175624832214}
   timeBtwAtk: 1.5
   atkRadius: 2
-  atkKnockback: 15
+  atkKnockback: 5
   atkDamage: 1
   atkNumTargets: 1
   bldAtkProj: {fileID: 2506502440746105523, guid: 95b6d119adece5c409034adef131a1f4, type: 3}
@@ -210,6 +210,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agentType: 1
+  isRange: 0
 --- !u!54 &2021008571752244095
 Rigidbody:
   m_ObjectHideFlags: 0

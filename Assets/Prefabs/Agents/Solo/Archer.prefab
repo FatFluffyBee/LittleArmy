@@ -183,13 +183,14 @@ MonoBehaviour:
   reloadTime: 2
   timeToChargeRange: {x: 1, y: 1.5}
   atkRange: 25
-  deviationRange: {x: 2, y: 5}
+  deviationRange: {x: 0, y: 5}
   airTimeRange: {x: 0.1, y: 0.6}
   gravityMulRange: {x: 5, y: 20}
   damage: 2
   knockbackForce: 5
   disruptRange: 3
   softMaxFleeingRange: 5
+  maxTargetRandomPick: 5
   stepDuration: 0.02
   stepNumbers: 200
 --- !u!114 &7346653644100394208
@@ -407,6 +408,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agentType: 0
+  isRange: 1
 --- !u!1 &6223338084994461873
 GameObject:
   m_ObjectHideFlags: 0
