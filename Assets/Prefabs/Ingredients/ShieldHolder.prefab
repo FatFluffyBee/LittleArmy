@@ -45,7 +45,7 @@ GameObject:
   - component: {fileID: 137726574872013544}
   - component: {fileID: 2135251839392066118}
   - component: {fileID: 7762198302717189711}
-  m_Layer: 10
+  m_Layer: 8
   m_Name: Render
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -161,7 +161,7 @@ GameObject:
   - component: {fileID: 5286486849985900443}
   - component: {fileID: 6358338194533948590}
   - component: {fileID: 8010551135827526377}
-  m_Layer: 10
+  m_Layer: 8
   m_Name: Shield
   m_TagString: Untagged
   m_Icon: {fileID: 0}

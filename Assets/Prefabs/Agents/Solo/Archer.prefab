@@ -180,17 +180,17 @@ MonoBehaviour:
   debug: 0
   arrowPrefab: {fileID: 6995656731119426635, guid: 05fada9e6e492614da66f883208489b6, type: 3}
   launchPoint: {fileID: 2181176863193463671}
-  reloadTime: 2
-  timeToChargeRange: {x: 1, y: 1.5}
+  reloadTime: 1.5
+  timeToChargeRange: {x: 0.5, y: 0.75}
   atkRange: 25
-  deviationRange: {x: 0, y: 5}
+  deviationRange: {x: 0.5, y: 3}
   airTimeRange: {x: 0.1, y: 0.6}
-  gravityMulRange: {x: 5, y: 20}
+  gravMul: 20
   damage: 2
   knockbackForce: 5
   disruptRange: 3
   softMaxFleeingRange: 5
-  maxTargetRandomPick: 5
+  maxTargetRandomPick: 10
   stepDuration: 0.02
   stepNumbers: 200
 --- !u!114 &7346653644100394208
@@ -231,7 +231,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.75
-  m_Speed: 10
+  m_Speed: 12
   m_Acceleration: 30
   avoidancePriority: 50
   m_AngularSpeed: 360

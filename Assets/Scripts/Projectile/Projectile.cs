@@ -12,10 +12,17 @@ public class Projectile : MonoBehaviour
 
     public virtual void Initialize(float damage, float knockbackForce, Vector3 origin, AgentType agentType)
     {
+        StartCoroutine("ActivateCollider");
         rb = GetComponent<Rigidbody>();
         this.damage = damage;
         this.knockbackForce = knockbackForce;
         this.origin = origin;
         this.agentType = agentType;
+    }
+
+    IEnumerator ActivateCollider() {
+        GetComponent<Collider>().enabled = false;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<Collider>().enabled = true;
     }
 }

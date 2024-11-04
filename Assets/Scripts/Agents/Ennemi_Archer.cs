@@ -13,7 +13,7 @@ public class Ennemi_Archer : Agent
     [SerializeField] private float atkRange;
     [SerializeField] private Vector2 deviationRange;
     [SerializeField] private Vector2 airTimeRange;
-    [SerializeField] private Vector2 gravityMulRange;
+    [SerializeField] private float gravMul;
     [SerializeField] private float damage;
     [SerializeField] private float knockbackForce;
     private float reloadTimeTimer;
@@ -29,6 +29,8 @@ public class Ennemi_Archer : Agent
     [SerializeField] private float confortRange;
     [SerializeField] private float confortRangeGap;
     [SerializeField] private int maxTargetRandomPick = 5;
+    [SerializeField] private int stepVerifNumber = 10;
+    private bool isTargetHittable;
 
     [Header("Building Attack")]
     [SerializeField] private GameObject bldAtkProj;
@@ -58,16 +60,22 @@ public class Ennemi_Archer : Agent
     {
         BaseUpdate();
 
-        if(!IsTargetValid(agentTarget, atkRange))
+        if(!IsTargetValid(agentTarget, atkRange)) {
             agentTarget = GetRandomTargetInRange(atkRange, AgentType.Ally, TargetType.All, DistMode.View, out distToTarget, maxTargetRandomPick);
+        }
         else {
             distToTarget = Vector3.Distance(agentTarget.position, transform.position);
         }
 
-        disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ally, TargetType.All, DistMode.Nav);
+        if(agentTarget != null) 
+            isTargetHittable = IsTargetHittable(transform.position, agentTarget, atkRange, airTimeRange, gravMul, stepVerifNumber);
+        else
+            isTargetHittable = false;
+
+        /*disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ally, TargetType.All, DistMode.Nav);
         if(disrupterTarget != null){
             SwitchAgentState(AgentState.Fleeing);
-        }
+        }*/
 
         switch(currentState) {
             case AgentState.SeekBuilding:
@@ -86,9 +94,9 @@ public class Ennemi_Archer : Agent
                 DoAttacking();
             break;
 
-            case AgentState.Fleeing:
+            /*case AgentState.Fleeing:
                 DoFleeing();
-            break;
+            break;*/
         }
     }
 
@@ -102,9 +110,11 @@ public class Ennemi_Archer : Agent
         if(agentTarget != null) {
             currentState = AgentState.SeekAgent;
         }
-        if(buildingTarget == null)
+        if(buildingTarget == null) {
             buildingTarget = EnnemiObjective.instance.GetClosestObjective(transform.position);
-
+            if(buildingTarget == null) return;
+        }
+            
         if(NavMesh.SamplePosition(buildingTarget.transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
             if(bldAtkCdTimer < Time.time && NavMaths.DistBtwPoints(transform.position, hit.position) < bldAtkRange) {
                 SwitchAgentState(AgentState.AttackBuilding);
@@ -145,15 +155,15 @@ public class Ennemi_Archer : Agent
             return;
         } 
         
-        if(distToTarget > atkRange) {
+        if(distToTarget > atkRange || !isTargetHittable) {
             SetDestination(agentTarget.position);
         }
-        else if(reloadTimeTimer < Time.time && distToTarget < atkRange){
+        else if(reloadTimeTimer < Time.time && distToTarget < atkRange && isTargetHittable){
             currentState = AgentState.AttackAgent;
             timeToCharge = Random.Range(timeToChargeRange.x, timeToChargeRange.y);
             timeToChargeCount = timeToCharge + Time.time;
         } else if(distToTarget < confortRange - confortRangeGap || distToTarget > confortRange + confortRangeGap){
-            Vector3 confortIdealPos = transform.position - (agentTarget.position - transform.position).normalized * confortRange;
+            Vector3 confortIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * confortRange;
             NavMesh.SamplePosition(confortIdealPos, out NavMeshHit navPos, atkRange, NavMesh.AllAreas);
             SetDestination(navPos.position);
         }
@@ -203,23 +213,17 @@ public class Ennemi_Archer : Agent
     }
 
     void FireProjectile(){
-        float range01 = Vector3.Distance(agentTarget.transform.position, launchPoint.position) / atkRange;
-        float airTimeFromDist = airTimeRange.x + (airTimeRange.y - airTimeRange.x) * range01; //retourne le temps que met la flèche pour attendre sa cible en fonction de la distance à celle-ci
-        float gravityMulFromDist = gravityMulRange.x + (gravityMulRange.y - gravityMulRange.x) * range01; 
-        float deviationFromDist = deviationRange.x + (deviationRange.y - deviationRange.x) * range01; 
-
-        Vector3 ennemiFuturePos = agentTarget.GetComponent<Agent>().GetPredictedPos(airTimeFromDist);
-
-        Vector3 initialVelocity = TrajMaths.InitialVelocityForBellTrajectory(launchPoint.position, ennemiFuturePos, airTimeFromDist, deviationFromDist, gravityMulFromDist);
+        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(launchPoint.position, agentTarget, atkRange, airTimeRange, gravMul, 
+            deviationRange, TrajMode.PredictionPos);
 
         if(debug){
             Vector3 pos = launchPoint.position;
             Vector3 velocity = initialVelocity;
             lineRd.positionCount = stepNumbers+1;
             lineRd.SetPosition(0, pos);
-            for(int i = 0; i < stepNumbers; i++)        {
+            for(int i = 0; i < stepNumbers; i++) {
                 pos += velocity * stepDuration;
-                velocity += Physics.gravity * stepDuration * gravityMulFromDist;
+                velocity += Physics.gravity * stepDuration * gravMul;
                 
                 lineRd.SetPosition(i+1, pos);
             }
@@ -227,7 +231,7 @@ public class Ennemi_Archer : Agent
 
         GameObject instance = Instantiate(arrowPrefab, launchPoint.transform.position, Quaternion.identity);
         instance.GetComponent<Rigidbody>().velocity = initialVelocity;
-        instance.GetComponent<GravityAmplifier>().Initialize(gravityMulFromDist);
+        instance.GetComponent<GravityAmplifier>().Initialize(gravMul);
         instance.GetComponent<Projectile>().Initialize(damage, knockbackForce, transform.position, AgentType.Ennemi);
     }
 

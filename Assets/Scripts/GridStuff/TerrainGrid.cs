@@ -6,16 +6,20 @@ using System.Linq;
 
 public class TerrainGrid : MonoBehaviour
 {
-    public bool isDebug = false;
+    public static TerrainGrid instance;
+
+    [SerializeField]private bool isDebug = false;
     public static int GRID_SCALE = 10;
-    public GameObject levelGeometry;
-    public GameObject gridCasePrefab;
+    [SerializeField]private GameObject levelGeometry;
+    [SerializeField]private GameObject gridCasePrefab;
     private GridData[,] gridArray;
-    private Vector3 gridOrigin;
+    [SerializeField] private Vector3 gridOrigin;
     private Vector3 worldOffset;
     private Vector3 caseCenterOffset;
     private GridData lastHighlightedSquare;
+
     void Awake() {
+        instance = this;
         gridOrigin = transform.position;
         gridArray = SetupGridDataArray(levelGeometry);
     }

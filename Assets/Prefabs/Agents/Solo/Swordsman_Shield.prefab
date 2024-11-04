@@ -171,7 +171,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rd: {fileID: 9148757738355602940}
   fbSelectionObject: {fileID: 3085306983093415388}
-  maxHealth: 10
+  maxHealth: 3
   stillThreshold: 0.05
   feedbackDuration: 0.4
   feedbackColor: {r: 1, g: 0, b: 0, a: 1}
@@ -185,9 +185,9 @@ MonoBehaviour:
   atkRadius: 2
   atkDamage: 1
   atkKnockback: 5
-  timeBtwAtk: 3
+  timeBtwAtk: 0.75
   slashPartSystem: {fileID: 2320000534550328403}
-  shieldRaiseRange: 30
+  shieldRaiseRange: 40
   shield: {fileID: 5899826448129896146}
 --- !u!23 &9148757738355602940 stripped
 MeshRenderer:

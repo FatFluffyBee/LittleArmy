@@ -233,19 +233,20 @@ MonoBehaviour:
   arrowPrefab: {fileID: 6995656731119426635, guid: 05fada9e6e492614da66f883208489b6, type: 3}
   launchPoint: {fileID: 3999425001254036547}
   reloadTime: 2
-  timeToChargeRange: {x: 1, y: 1.5}
+  timeToChargeRange: {x: 0.5, y: 0.75}
   atkRange: 25
-  deviationRange: {x: 1, y: 3}
+  deviationRange: {x: 0, y: 1}
   airTimeRange: {x: 0.1, y: 0.6}
-  gravityMulRange: {x: 5, y: 20}
+  gravMul: 20
   damage: 2
   knockbackForce: 3
   disruptRange: 3
-  confortRange: 15
-  confortRangeGap: 5
-  maxTargetRandomPick: 5
-  bldAtkProj: {fileID: 8227308342773521992}
-  bldAtkLaunchPoint: {fileID: 0}
+  confortRange: 20
+  confortRangeGap: 3
+  maxTargetRandomPick: 10
+  stepVerifNumber: 10
+  bldAtkProj: {fileID: 2506502440746105523, guid: 95b6d119adece5c409034adef131a1f4, type: 3}
+  bldAtkLaunchPoint: {fileID: 3999425001254036547}
   bldAtkRange: 4
   bldAtkCd: 3
   bldAtkDamage: 1
@@ -291,7 +292,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.75
-  m_Speed: 10
+  m_Speed: 12
   m_Acceleration: 30
   avoidancePriority: 50
   m_AngularSpeed: 360

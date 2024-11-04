@@ -75,9 +75,6 @@ public class Agent : MonoBehaviour, ISelectable
 
     //--------------------------------------------------------
     //MOVEMENT RELATED
-    public virtual Vector3 GetPredictedPos(float timeToMove) { //return the predicted position of the object in x seconds
-        return transform.position + navMeshAgent.velocity * timeToMove;
-    }
 
     protected void SetDestination (Vector3 destination){
         navMeshAgent.SetDestination(destination);
@@ -99,10 +96,8 @@ public class Agent : MonoBehaviour, ISelectable
     }
 
     protected bool IsAgentAtDestination(){
-        Vector3 start = transform.position;
-        Vector3 end = navMeshAgent.destination;
-        start.y = 0;
-        end.y = 0;
+        Vector3 start = GenMaths.WithoutY(transform.position);
+        Vector3 end = GenMaths.WithoutY(navMeshAgent.path.corners[^1]);
 
         if(Vector3.Distance(start, end) < 0.1f)
             return true;
@@ -111,10 +106,8 @@ public class Agent : MonoBehaviour, ISelectable
     }
 
     protected bool IsAgentAtHomePoint(){
-        Vector3 start = transform.position;
-        Vector3 end = homePoint;
-        start.y = 0;
-        end.y = 0;
+        Vector3 start = GenMaths.WithoutY(transform.position);
+        Vector3 end = GenMaths.WithoutY(homePoint);
 
         if(Vector3.Distance(start, end) < 0.1f)
             return true;
@@ -175,10 +168,12 @@ public class Agent : MonoBehaviour, ISelectable
             timerFeedback += Time.deltaTime;
         }
     }
+    
     public void SetBaseColor(Color color) {
         baseColor = color;
         rd.material.color = baseColor;
     }
+    
     public void SetSelectionFeedbackVisibility(bool status) {
         if(fbSelectionObject != null)
             fbSelectionObject.SetActive(status);
@@ -282,17 +277,39 @@ public class Agent : MonoBehaviour, ISelectable
 
     protected bool IsTargetValid(Transform target, float range) {
         if(target == null) return false;
-        return IsTargetInRange(target, range) && IsTargetTargeatable(target);
+        return IsTargetInRange(target, range) && IsTargetTargetable(target);
     }
 
     protected bool IsTargetInRange(Transform target, float range) {
         return Vector3.Distance(target.position, transform.position) < range;
     }
 
-    protected bool IsTargetTargeatable(Transform target) {
+    protected bool IsTargetTargetable(Transform target) {
         return target.GetComponent<IsTargeteable>() != null;
     }
-    
+
+    protected bool IsTargetHittable(Vector3 startPos, Transform target, float maxRange, Vector2 airTimeRange, float gravityMul, int nSteps) {
+        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(startPos, target, maxRange, airTimeRange, gravityMul, Vector2.zero, 
+            TrajMode.ActualPos, out float airTime);
+        float stepDuration = airTime / nSteps;
+        Vector3 pos = startPos;
+        LayerMask mask = LayerMask.GetMask("Terrain");
+        for(int i = 0; i < nSteps/2; i++) {
+                Debug.DrawLine(pos, pos + stepDuration * initialVelocity, Color.blue, 0.01f);
+                pos += initialVelocity * stepDuration;
+                initialVelocity += Physics.gravity * stepDuration * gravityMul;
+                
+                if(Physics.Raycast(pos, initialVelocity, out RaycastHit hit, Vector3.Distance(pos, pos + initialVelocity * stepDuration), mask)) 
+                {
+                    Debug.DrawLine(hit.point, hit.point + hit.normal * 10, Color.red, 0.5f);
+                    Debug.Log("Hit wall"); 
+                    return false;
+                }
+            }
+        
+        Debug.Log("No wall hit");
+        return true;
+    }   
 
     protected void EnableAgentMovement(bool choice) {
         navMeshAgent.isStopped = !choice;

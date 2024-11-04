@@ -14,7 +14,7 @@ public class Archer : Agent
     [SerializeField] private float atkRange;
     [SerializeField] private Vector2 deviationRange;
     [SerializeField] private Vector2 airTimeRange;
-    [SerializeField] private Vector2 gravityMulRange;
+    [SerializeField] private float gravMul;
     [SerializeField] private float damage;
     [SerializeField] private float knockbackForce;
     private float reloadTimeTimer;
@@ -44,10 +44,10 @@ public class Archer : Agent
         if(!IsTargetValid(target, atkRange))
             target = GetRandomTargetInRange(atkRange, AgentType.Ennemi, TargetType.All, DistMode.View, out float x, maxTargetRandomPick);
 
-        disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float d);
+        /*disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float d);
         if(disrupterTarget != null && currentState != AgentState.Travelling){
             SwitchAgentState(AgentState.Fleeing);
-        }
+        }*/
 
         switch(currentState) {
             case AgentState.Idle : //dont move but attack if in range
@@ -78,7 +78,7 @@ public class Archer : Agent
                 EnableAgentMovement(true);
                 break;
 
-            case AgentState.Fleeing :
+            /*case AgentState.Fleeing :
                 if(disrupterTarget == null) {
                     SwitchAgentState(AgentState.Idle);
                     SetDestination(homePoint); 
@@ -94,7 +94,7 @@ public class Archer : Agent
                     LookAtDirection(disrupterTarget.position);
                 }
                 EnableAgentMovement(true);
-            break;
+            break;*/
 
             case AgentState.Attacking :
                 if(target == null) {
@@ -132,23 +132,16 @@ public class Archer : Agent
     }
 
     void FireProjectile(){
-        float range01 = Vector3.Distance(target.transform.position, launchPoint.position) / atkRange;
-        float airTimeFromDist = airTimeRange.x + (airTimeRange.y - airTimeRange.x) * range01; //retourne le temps que met la flèche pour attendre sa cible en fonction de la distance à celle-ci
-        float gravityMulFromDist = gravityMulRange.x + (gravityMulRange.y - gravityMulRange.x) * range01; 
-        float deviationFromDist = deviationRange.x + (deviationRange.y - deviationRange.x) * range01; 
-
-        Vector3 ennemiFuturePos = target.GetComponent<Agent>().GetPredictedPos(airTimeFromDist);
-
-        Vector3 initialVelocity = TrajMaths.InitialVelocityForBellTrajectory(launchPoint.position, ennemiFuturePos, airTimeFromDist, deviationFromDist, gravityMulFromDist);
+        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(launchPoint.position, target, atkRange, airTimeRange, gravMul, deviationRange, TrajMode.PredictionPos);
 
         if(debug){
             Vector3 pos = launchPoint.position;
             Vector3 velocity = initialVelocity;
             lineRd.positionCount = stepNumbers+1;
             lineRd.SetPosition(0, pos);
-            for(int i = 0; i < stepNumbers; i++)        {
+            for(int i = 0; i < stepNumbers; i++){
                 pos += velocity * stepDuration;
-                velocity += Physics.gravity * stepDuration * gravityMulFromDist;
+                velocity += Physics.gravity * stepDuration * gravMul;
                 
                 lineRd.SetPosition(i+1, pos);
             }
@@ -156,7 +149,7 @@ public class Archer : Agent
 
         GameObject instance = Instantiate(arrowPrefab, launchPoint.transform.position, Quaternion.identity);
         instance.GetComponent<Rigidbody>().velocity = initialVelocity;
-        instance.GetComponent<GravityAmplifier>().Initialize(gravityMulFromDist);
+        instance.GetComponent<GravityAmplifier>().Initialize(gravMul);
         instance.GetComponent<Projectile>().Initialize(damage, knockbackForce, transform.position, AgentType.Ennemi);
     }
 

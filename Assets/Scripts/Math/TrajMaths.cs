@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public static class TrajMaths 
@@ -24,5 +25,29 @@ public static class TrajMaths
         return finalVelocity;   
     }
 
+    public static Vector3 GetInitVelocityForBellCurveFromRangeValue(Vector3 startPos, Transform target, float maxRange, Vector2 airTimeRange, float gravMul, 
+         Vector2 deviationRange, TrajMode trajMode) {
+        return GetInitVelocityForBellCurveFromRangeValue(startPos, target, maxRange, airTimeRange, gravMul, deviationRange, trajMode, out float a);
+    }
 
+    public static Vector3 GetInitVelocityForBellCurveFromRangeValue(Vector3 startPos, Transform target, float maxRange, Vector2 airTimeRange,
+     float gravMul, Vector2 deviationRange, TrajMode trajMode, out float airTimeFromDist) {
+        float range01 = Vector3.Distance(target.transform.position, startPos) / maxRange;
+        airTimeFromDist = airTimeRange.x + (airTimeRange.y - airTimeRange.x) * range01; //retourne le temps que met la flèche pour attendre sa cible en fonction de la distance à celle-ci
+        float deviationFromDist = deviationRange.x + (deviationRange.y - deviationRange.x) * range01; 
+
+        float vertDiff = Mathf.Abs(target.transform.position.y - startPos.y);
+        float verticalRatio = Mathf.Max(1, 1 + vertDiff / TerrainGrid.GRID_SCALE * 1 / range01 * 0.33f);
+        airTimeFromDist *= verticalRatio; //without this arrow between high and low vertical value will hit walls
+
+        Vector3 targetPos;
+        if(trajMode == TrajMode.PredictionPos)
+            targetPos = target.GetComponent<IsTargeteable>().GetPredictedPos(airTimeFromDist);
+        else 
+            targetPos = target.transform.position;
+
+        return InitialVelocityForBellTrajectory(startPos, targetPos, airTimeFromDist, deviationFromDist, gravMul);
+    }
 }
+
+ public enum TrajMode {PredictionPos, ActualPos};

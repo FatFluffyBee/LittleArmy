@@ -5,8 +5,8 @@ using UnityEngine;
 
 public class HealthSystem : MonoBehaviour
 {
-    [SerializeField] private float maxHealth;
-    [SerializeField] private float health;
+    private float maxHealth;
+    [SerializeField] private float health; // to read
 
     public delegate void HealthAction();
     public event HealthAction OnDeath;
@@ -23,16 +23,15 @@ public class HealthSystem : MonoBehaviour
     public void TakeDamage(float healthLost, Vector3 knockbackVector)
     {
         health -= healthLost;
+        
+        if(OnTakingDamage != null) {
+            OnTakingDamage(knockbackVector);
+        }
+
         if (health <= 0)
         {
             if(OnDeath != null)
                 OnDeath();
         }
-        else
-        {
-            if(OnTakingDamage != null)
-                OnTakingDamage(knockbackVector);
-        }
     }
-    
 }
