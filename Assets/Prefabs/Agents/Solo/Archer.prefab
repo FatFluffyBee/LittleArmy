@@ -178,12 +178,13 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 1
   debug: 0
+  currentStateName: 
   arrowPrefab: {fileID: 6995656731119426635, guid: 05fada9e6e492614da66f883208489b6, type: 3}
   launchPoint: {fileID: 2181176863193463671}
-  reloadTime: 1.5
+  reloadDuration: 3
   timeToChargeRange: {x: 0.5, y: 0.75}
   atkRange: 25
-  deviationRange: {x: 0.5, y: 3}
+  deviationRange: {x: 0.5, y: 1.5}
   airTimeRange: {x: 0.1, y: 0.6}
   gravMul: 20
   damage: 2
@@ -205,7 +206,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 385204deb74004e4d9900f8f1d1f92a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 20
   health: 0
 --- !u!114 &2945195822164061457
 MonoBehaviour:

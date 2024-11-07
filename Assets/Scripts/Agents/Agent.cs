@@ -19,10 +19,9 @@ public class Agent : MonoBehaviour, ISelectable
     protected Rigidbody rb;
     private PathBallDisplay pathBallDisplay;
     protected bool isCenterAgent = false;
-    protected bool asBeenMoveOrdered = false;
+    public bool AsBeenMoveOrdered {get; set;}
     protected Color unitColor;
-    protected Vector3 homePoint;
-    
+    public Vector3 HomePoint {get; set;}
 
     [Header("Damage Feedback")]
     public float feedbackDuration = 0.4f;
@@ -37,22 +36,23 @@ public class Agent : MonoBehaviour, ISelectable
     private float cycleTimer;
     protected bool feedbackMovement = false;
     public bool debug;
+
+    public Transform Target {get; set;}
+    public bool InCombat {get; set;}
  
-    public void Initialize(SuperAgent superAgent, Color unitColor){
-        SuperAgent = superAgent;
+    public void Initialize(){
         rb = GetComponent<Rigidbody>();
         baseColor = rd.material.color;
         GetComponent<HealthSystem>().Initialize(maxHealth);
         GetComponent<HealthSystem>().OnDeath += OnDeath;
         GetComponent<HealthSystem>().OnTakingDamage += OnTakingDamage;
-        this.unitColor = unitColor;
         navMeshAgent = GetComponent<NavMeshAgent>();
 
         pathBallDisplay = GetComponent<PathBallDisplay>();
         pathBallDisplay?.Initialize(unitColor);
 
         NavMesh.SamplePosition(transform.position, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
-        homePoint = navPos.position;
+        HomePoint = navPos.position;
 
         navMeshAgent.updateRotation = false;
     }
@@ -61,11 +61,12 @@ public class Agent : MonoBehaviour, ISelectable
     {
         FeedbackMovement();
         VisualFeedbackHit();
-        if(pathBallDisplay != null && asBeenMoveOrdered) 
+        if(pathBallDisplay != null && AsBeenMoveOrdered) 
             if(isCenterAgent && currentState == AgentState.Travelling)
                 pathBallDisplay.DisplayUnitPathWithBalls(navMeshAgent.path.corners.ToList());
 
         if(!rb.isKinematic) {
+            navMeshAgent.nextPosition = transform.position;
              if(rb.velocity.magnitude < stillThreshold)
                 DisableRigidBodyPhysics();
         }
@@ -76,15 +77,34 @@ public class Agent : MonoBehaviour, ISelectable
     //--------------------------------------------------------
     //MOVEMENT RELATED
 
-    protected void SetDestination (Vector3 destination){
+    public void SetDestination(Vector3 destination) {
         navMeshAgent.SetDestination(destination);
     }
 
-    public void GiveMoveOrder(Vector3 destination) {
-        SetDestination(destination);
+    public bool CheckAndSetDestination (Vector3 destination) {
+    if(NavMesh.SamplePosition(destination, out NavMeshHit navPos, 5, NavMesh.AllAreas)) {
+        navMeshAgent.SetDestination(navPos.position);
+        return true;
+    }
+        return false;
+    }
+
+    public bool CheckAndSetDestination (Vector3 destination, out Vector3 navMeshPoint){
+        if(NavMesh.SamplePosition(destination, out NavMeshHit navPos, 5, NavMesh.AllAreas)) {
+            navMeshPoint = navPos.position;
+            navMeshAgent.SetDestination(navMeshPoint);
+            return true;
+        }
+
+        navMeshPoint = Vector3.zero;
+        return false;
+    }
+
+    public void GiveMoveOrder(Vector3 destination) { 
+        if(CheckAndSetDestination(destination, out Vector3 navPos));
         currentState = AgentState.Travelling;
-        homePoint = destination;
-        asBeenMoveOrdered = true;
+        HomePoint = navPos; //Todo
+        AsBeenMoveOrdered = true;
     }
 
     void FeedbackMovement(){
@@ -95,7 +115,7 @@ public class Agent : MonoBehaviour, ISelectable
         }
     }
 
-    protected bool IsAgentAtDestination(){
+    public bool IsAgentAtDestination(){
         Vector3 start = GenMaths.WithoutY(transform.position);
         Vector3 end = GenMaths.WithoutY(navMeshAgent.path.corners[^1]);
 
@@ -105,14 +125,16 @@ public class Agent : MonoBehaviour, ISelectable
             return false;
     }
 
-    protected bool IsAgentAtHomePoint(){
+    public bool IsAgentAtHomePoint(){
         Vector3 start = GenMaths.WithoutY(transform.position);
-        Vector3 end = GenMaths.WithoutY(homePoint);
+        Vector3 end = GenMaths.WithoutY(HomePoint);
 
         if(Vector3.Distance(start, end) < 0.1f)
             return true;
-        else 
+        else {
             return false;
+        }
+            
     }
 
     //--------------------------------------------------------
@@ -147,11 +169,12 @@ public class Agent : MonoBehaviour, ISelectable
     }
 
     void DisableRigidBodyPhysics() {
+        navMeshAgent.speed = 10;
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
         rb.useGravity = false;
-        NavMesh.SamplePosition(transform.position, out NavMeshHit navHit, 1000, NavMesh.AllAreas);
-        navMeshAgent.Warp(navHit.position);
+        //NavMesh.SamplePosition(transform.position, out NavMeshHit navHit, 1000, NavMesh.AllAreas);
+        //navMeshAgent.Warp(navHit.position);
         navMeshAgent.updatePosition = true;
     }
 
@@ -187,7 +210,7 @@ public class Agent : MonoBehaviour, ISelectable
         }
     }
 
-    protected virtual void LookAtDirection(Vector3 dir) {
+    public virtual void LookAtDirection(Vector3 dir) {
         dir.y = transform.position.y;
         transform.LookAt(dir);
     }
@@ -311,7 +334,7 @@ public class Agent : MonoBehaviour, ISelectable
         return true;
     }   
 
-    protected void EnableAgentMovement(bool choice) {
+    public void EnableAgentMovement(bool choice) {
         navMeshAgent.isStopped = !choice;
         feedbackMovement = choice;
     }

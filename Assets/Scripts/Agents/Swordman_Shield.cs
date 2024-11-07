@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Swordman_Shield : Swordman
 {
-    [Header("Shield")]
+    /*[Header("Shield")]
     [SerializeField] private float shieldRaiseRange = 30;
     [SerializeField] private Shield shield;
     private Transform closestRangeTarget;
@@ -21,7 +21,7 @@ public class Swordman_Shield : Swordman
             LookAtDirection(transform.position + Vector3.forward);
         }
 
-        returnHome = false;
+        movementOrdered = false;
         EnableAgentMovement(false);
 
         if(target != null) {
@@ -34,5 +34,5 @@ public class Swordman_Shield : Swordman
             SetDestination(homePoint);
             shield.LowerShield();
         }
-    }
+    }*/
 }

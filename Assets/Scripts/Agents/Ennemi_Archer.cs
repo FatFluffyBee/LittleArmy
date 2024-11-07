@@ -51,7 +51,7 @@ public class Ennemi_Archer : Agent
     
     void Start()
     {
-        Initialize(null, Color.black);
+        Initialize();
         currentState = AgentState.SeekBuilding;
     }
 
@@ -121,7 +121,7 @@ public class Ennemi_Archer : Agent
                 bldAtkChargeTimer = bldAtkChargeTime + Time.time;
             }
             else {
-                SetDestination(hit.position);
+                CheckAndSetDestination(hit.position);
             } 
         } 
 
@@ -156,7 +156,7 @@ public class Ennemi_Archer : Agent
         } 
         
         if(distToTarget > atkRange || !isTargetHittable) {
-            SetDestination(agentTarget.position);
+            CheckAndSetDestination(agentTarget.position);
         }
         else if(reloadTimeTimer < Time.time && distToTarget < atkRange && isTargetHittable){
             currentState = AgentState.AttackAgent;
@@ -165,7 +165,7 @@ public class Ennemi_Archer : Agent
         } else if(distToTarget < confortRange - confortRangeGap || distToTarget > confortRange + confortRangeGap){
             Vector3 confortIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * confortRange;
             NavMesh.SamplePosition(confortIdealPos, out NavMeshHit navPos, atkRange, NavMesh.AllAreas);
-            SetDestination(navPos.position);
+            CheckAndSetDestination(navPos.position);
         }
 
         LookAtDirection(agentTarget.position);
@@ -192,7 +192,7 @@ public class Ennemi_Archer : Agent
         } else {       
             Vector3 fleeingIdealPos = transform.position - (disrupterTarget.position - transform.position).normalized * (disruptRange + 1f);
             NavMesh.SamplePosition(fleeingIdealPos, out NavMeshHit navPos, atkRange, NavMesh.AllAreas);
-            SetDestination(navPos.position);
+            CheckAndSetDestination(navPos.position);
 
             LookAtDirection(disrupterTarget.position);
         }

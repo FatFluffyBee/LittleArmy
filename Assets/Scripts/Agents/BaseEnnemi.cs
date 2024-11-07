@@ -35,7 +35,7 @@ public class Ennemi_Basic : Agent
     
     void Start()
     {
-        Initialize(null, Color.black);
+        Initialize();
         currentState = AgentState.SeekBuilding;
     }
 
@@ -55,12 +55,12 @@ public class Ennemi_Basic : Agent
                         SwitchAgentState(AgentState.Attacking);
                     } 
                     else if (timeBtwAtkTimer < Time.time) { //ally not in circling range so just avance 
-                        SetDestination(agentTarget.position);
+                        CheckAndSetDestination(agentTarget.position);
                     } 
                     else { //ally in circling range
                         Vector3 circlingIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * circlingRange;
                         NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
-                        SetDestination(navPos.position);
+                        CheckAndSetDestination(navPos.position);
                      }
                 }
                     
@@ -91,7 +91,7 @@ public class Ennemi_Basic : Agent
                         bldAtkChargeTimer = bldAtkChargeTime + Time.time;
                     }
                     else {
-                        SetDestination(hit.position);
+                        CheckAndSetDestination(hit.position);
                     } 
                 } 
 

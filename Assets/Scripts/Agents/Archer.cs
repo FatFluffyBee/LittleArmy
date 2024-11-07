@@ -3,13 +3,17 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
+using System;
 
 public class Archer : Agent
 {
+    [SerializeField] private string currentStateName;
+    private FiniteStateMachine stateMachine;
     [Header("Projectile Launch")]
     [SerializeField] private GameObject arrowPrefab;
     [SerializeField] private Transform launchPoint;
-    [SerializeField] private float reloadTime;
+    [SerializeField] private float reloadDuration;
+    private float reloadTimer;
     [SerializeField] private Vector2 timeToChargeRange;
     [SerializeField] private float atkRange;
     [SerializeField] private Vector2 deviationRange;
@@ -17,13 +21,10 @@ public class Archer : Agent
     [SerializeField] private float gravMul;
     [SerializeField] private float damage;
     [SerializeField] private float knockbackForce;
-    private float reloadTimeTimer;
-    private float timeToCharge;
-    private float timeToChargeCount;
+
     private bool readyToFire = false;
 
     [Header("Targetting")]
-    private Transform target;
     private Transform disrupterTarget;
     [SerializeField] private float disruptRange = 5f;
     [SerializeField] private float softMaxFleeingRange = 10f;
@@ -34,50 +35,52 @@ public class Archer : Agent
     [SerializeField] private int stepNumbers;
     private LineRenderer lineRd;
     
-    void Start(){
+    void Awake(){
         lineRd = GetComponent<LineRenderer>();
+
+        Initialize();
+        stateMachine = new FiniteStateMachine();
+
+        var idle = new Idle(this);
+        var returnHome = new ReturnHome(this);
+        var chargeAttack = new ChargeAttack(this, timeToChargeRange.x, TMPTriggerFire);
+        var prioMovement = new PrioMovement(this);
+        
+        At(idle, chargeAttack, AsTargetAndReloadReady());
+        At(chargeAttack, idle, AsNoTargeOrReloadNotReady());
+        At(idle, returnHome, AsNotReachedHomePoint());
+        At(returnHome, idle, AsReachedHomePoint());
+        At(returnHome, chargeAttack, AsTargetAndReloadReady());
+        At(prioMovement, idle, AsReachedHomePoint());
+
+        stateMachine.SetState(idle); 
+
+        stateMachine.AddAnyTransition(prioMovement, () => AsBeenMoveOrdered);
+
+        void At(IState from, IState to, Func<bool> condition) => stateMachine.AddTransition(from, to, condition);
+        Func<bool> AsReachedHomePoint() => () => IsAgentAtHomePoint();
+        Func<bool> AsNotReachedHomePoint() => () => !IsAgentAtHomePoint();
+        Func<bool> AsTargetAndReloadReady() => () => Target != null && reloadTimer < Time.time;
+        Func<bool> AsNoTargeOrReloadNotReady() => () => Target == null || reloadTimer > Time.time;
     }
 
     void Update(){ //todo recompile
         BaseUpdate();
 
-        if(!IsTargetValid(target, atkRange))
-            target = GetRandomTargetInRange(atkRange, AgentType.Ennemi, TargetType.All, DistMode.View, out float x, maxTargetRandomPick);
+        if(!IsTargetValid(Target, atkRange))
+            Target = GetRandomTargetInRange(atkRange, AgentType.Ennemi, TargetType.All, DistMode.View, out float x, maxTargetRandomPick);
+
+        stateMachine.Tick();
+
+        currentStateName = stateMachine.GetStateName();
+        Debug.Log(AsBeenMoveOrdered);
 
         /*disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float d);
         if(disrupterTarget != null && currentState != AgentState.Travelling){
             SwitchAgentState(AgentState.Fleeing);
         }*/
 
-        switch(currentState) {
-            case AgentState.Idle : //dont move but attack if in range
-                if(target != null && reloadTimeTimer < Time.time) {
-                    SwitchAgentState(AgentState.Attacking);
-                    timeToCharge = Random.Range(timeToChargeRange.x, timeToChargeRange.y);
-                    timeToChargeCount = timeToCharge + Time.time;
-                }
-                else if(target == null && !IsAgentAtHomePoint()) {
-                    SwitchAgentState(AgentState.Travelling);
-                    SetDestination(homePoint);
-                }
-
-                if(target != null)
-                    LookAtDirection(target.position);
-                else
-                    LookAtDirection(transform.position + Vector3.forward);
-                EnableAgentMovement(false);
-            break;
-
-            case AgentState.Travelling : //travelling to a new spot)
-                if(IsAgentAtDestination()) {
-                    SwitchAgentState(AgentState.Idle);
-                }
-
-                if(navMeshAgent.path.corners.Length > 1) 
-                    LookAtDirection(navMeshAgent.path.corners[1]);
-                EnableAgentMovement(true);
-                break;
-
+        
             /*case AgentState.Fleeing :
                 if(disrupterTarget == null) {
                     SwitchAgentState(AgentState.Idle);
@@ -95,44 +98,20 @@ public class Archer : Agent
                 }
                 EnableAgentMovement(true);
             break;*/
-
-            case AgentState.Attacking :
-                if(target == null) {
-                    SwitchAgentState(AgentState.Idle);
-                } 
-                else {
-                    if(timeToChargeCount < Time.time) {
-                        readyToFire = true;
-                    }
-
-                    LookAtDirection(target.position);
-                }  
-                EnableAgentMovement(false);
-            break;
-        }  
     }
+
+    Action TMPTriggerFire => () => readyToFire = true;
 
     void FixedUpdate(){ 
         if(readyToFire){
-            LaunchAttack();
+            FireProjectile();
+            Target = null;
+            readyToFire = false;
         }
     }
 
-    void LaunchAttack() {
-        if(target == null) {
-            readyToFire = false; //cause we fire on fixedupdate there can be dissonance where the target is outrange the next frame before and so it create infinite error loop
-            return;
-        } 
-
-        FireProjectile();
-        reloadTimeTimer = Time.time + reloadTime;
-        readyToFire = false;
-        SwitchAgentState(AgentState.Idle);
-        target = null; //reset target so it can focus an another one closer if needed
-    }
-
     void FireProjectile(){
-        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(launchPoint.position, target, atkRange, airTimeRange, gravMul, deviationRange, TrajMode.PredictionPos);
+        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(launchPoint.position, Target, atkRange, airTimeRange, gravMul, deviationRange, TrajMode.PredictionPos);
 
         if(debug){
             Vector3 pos = launchPoint.position;
@@ -151,6 +130,12 @@ public class Archer : Agent
         instance.GetComponent<Rigidbody>().velocity = initialVelocity;
         instance.GetComponent<GravityAmplifier>().Initialize(gravMul);
         instance.GetComponent<Projectile>().Initialize(damage, knockbackForce, transform.position, AgentType.Ennemi);
+
+        SetReloadTimer();
+    }
+
+     private void SetReloadTimer() {
+        reloadTimer = reloadDuration + Time.time;
     }
 
     private void OnDrawGizmos() {
@@ -159,8 +144,7 @@ public class Archer : Agent
             Gizmos.DrawWireSphere(transform.position, atkRange);
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, disruptRange); 
-        }
-            
+        }   
     }
 }
 

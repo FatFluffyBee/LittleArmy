@@ -146,14 +146,15 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 0.5
   debug: 0
+  currentStateName: 
   aggroRange: 10
-  circlingRange: 3
+  maxRangeFromHomePoint: 15
   atkNumTargets: 1
   atkRange: 2
   atkRadius: 2
   atkDamage: 1
-  atkKnockback: 5
-  timeBtwAtk: 0.75
+  atkKnockback: 8
+  reloadDuration: 1.5
   slashPartSystem: {fileID: 8637674244510264989}
 --- !u!114 &8355333354777030581
 MonoBehaviour:
@@ -167,7 +168,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 385204deb74004e4d9900f8f1d1f92a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 20
   health: 0
 --- !u!114 &1307535767988978957
 MonoBehaviour:

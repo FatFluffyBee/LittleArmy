@@ -145,13 +145,13 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 0.5
   debug: 0
-  aggroRange: 20
+  aggroRange: 15
   circlingRange: 3
   atkRange: 2
   slashPartSystem: {fileID: 5017966175624832214}
   timeBtwAtk: 0.75
   atkRadius: 2
-  atkKnockback: 5
+  atkKnockback: 8
   atkDamage: 1
   atkNumTargets: 1
   bldAtkProj: {fileID: 2506502440746105523, guid: 95b6d119adece5c409034adef131a1f4, type: 3}
@@ -195,7 +195,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 385204deb74004e4d9900f8f1d1f92a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 0
   health: 0
 --- !u!114 &8766015429993975586
 MonoBehaviour:

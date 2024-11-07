@@ -17,9 +17,9 @@ public class SuperAgent : MonoBehaviour, ISelectable
     private Transform destination;
     private Agent centerAgent;
 
-    void Start(){
+    void Awake(){
         foreach (Agent agent in agents){
-            agent.Initialize(this, unitColor);
+            agent.SuperAgent = this;
         }
         SetCenterAgent();
     }
@@ -42,7 +42,7 @@ public class SuperAgent : MonoBehaviour, ISelectable
         }
     }
 
-    public List<Vector3> GetFormationPos(Vector3 middlePos, FormationType formationType, float spacing)
+    public List<Vector3> GetFormationPos(Vector3 middlePos, FormationType formationType, float spacing) //todo rework so pos given are all reachable without pushing others
     {
         List<Vector3> positions = new List<Vector3>();
         switch (formationType){
