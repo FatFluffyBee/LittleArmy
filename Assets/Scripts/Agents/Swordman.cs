@@ -24,17 +24,13 @@ public class Swordman : Agent
     private float reloadTimer;
     [SerializeField] private ParticleSystem slashPartSystem;
 
-    [Header("Targetting")]
-    private float navDistToTarget;
-    private float navDistTargetToHome; //distance btw home and target, better than distance btw agent and target cause more sure of effecuing attack
-
     void Awake() 
     {
         Initialize();
         stateMachine = new FiniteStateMachine();
 
         var idle = new Idle(this);
-        var huntTarget = new HuntTarget(this);
+        var huntTarget = new HuntTarget(this, atkRange);
         var prioMovement = new PrioMovement(this);
         var returnHome = new ReturnHome(this);
         var chargeAttack = new ChargeAttack(this, LaunchSlashAttack);
@@ -45,7 +41,7 @@ public class Swordman : Agent
         At(returnHome, idle, AsReachedHomePoint());
         At(idle, returnHome, AsNotReachedHomePoint());
         At(huntTarget, chargeAttack, TargetInAtkRangeAndReloadReady());
-        At(chargeAttack, huntTarget, () => true);
+        At(chargeAttack, huntTarget, () => reloadTimer > Time.time);
         //At(prioMovement, idle, AsReachedHomePoint());
 
         //stateMachine.AddAnyTransition(prioMovement, MoveOrderGivenAndOutOfCombat());
@@ -56,15 +52,16 @@ public class Swordman : Agent
         Func<bool> AsReachedHomePoint() => () => IsAgentAtHomePoint();
         Func<bool> AsNotReachedHomePoint() => () => !IsAgentAtHomePoint();
         //Func<bool> MoveOrderGivenAndOutOfCombat() => () => AsBeenMoveOrdered && !InCombat;
-        Func<bool> TargetInAtkRangeAndReloadReady() => () => Target != null && navDistToTarget < atkRange && reloadTimer < Time.time;
-        Func<bool> AsNoTargetOrTooFarFromHome() => () => navDistTargetToHome > maxRangeFromHomePoint || Target == null;
-        Func<bool> AsTargetAndCloseToHome() => () => navDistTargetToHome < maxRangeFromHomePoint && Target != null;
+        Func<bool> TargetInAtkRangeAndReloadReady() => () => Target != null && NavDistToTarget < atkRange && reloadTimer < Time.time;
+        Func<bool> AsNoTargetOrTooFarFromHome() => () => NavDistToHome > maxRangeFromHomePoint || Target == null;
+        Func<bool> AsTargetAndCloseToHome() => () => NavDistToHome < maxRangeFromHomePoint && Target != null;
     }
 
     void Update(){ 
         BaseUpdate();
-        Target = GetClosestTargetInRange(aggroRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out navDistToTarget);
-        if(Target != null) navDistTargetToHome = NavMaths.DistBtwPoints(Target.position, HomePoint);
+        Target = GetClosestTargetInRange(aggroRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float navDist);
+        NavDistToTarget = navDist;
+        if(Target != null) NavDistToHome = NavMaths.DistBtwPoints(Target.position, HomePoint);
 
         stateMachine.Tick();
 
@@ -90,11 +87,11 @@ public class Swordman : Agent
                 dataTargets = OrderDataTargetsByDist(dataTargets);
 
                 for(int i = 0; i < ((atkNumTargets > dataTargets.Count)? dataTargets.Count : atkNumTargets); i++) { //in case there is less target to hit than the max number of agent the atk can hit
-                Vector3 knockBarDir = dataTargets[i].col.transform.position - transform.position; 
-                knockBarDir.y = 0;
-                Vector3 knockbackVector = knockBarDir.normalized * atkKnockback;
-                dataTargets[i].col.GetComponent<HealthSystem>().TakeDamage(atkDamage, knockbackVector);
-            } 
+                    Vector3 knockBarDir = dataTargets[i].col.transform.position - transform.position; 
+                    knockBarDir.y = 0;
+                    Vector3 knockbackVector = knockBarDir.normalized * atkKnockback;
+                    dataTargets[i].col.GetComponent<HealthSystem>().TakeDamage(atkDamage, knockbackVector);
+                } 
             }
         }
         SetReloadTimer();

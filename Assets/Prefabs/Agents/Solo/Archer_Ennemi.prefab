@@ -230,6 +230,13 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 1
   debug: 0
+  bldAtkProj: {fileID: 2506502440746105523, guid: 95b6d119adece5c409034adef131a1f4, type: 3}
+  bldAtkLaunchPoint: {fileID: 3999425001254036547}
+  bldAtkRange: 4
+  bldReloadDuration: 2
+  bldAtkDamage: 1
+  bldAtkChargeDuration: 0
+  bldProjGravityModif: 5
   arrowPrefab: {fileID: 6995656731119426635, guid: 05fada9e6e492614da66f883208489b6, type: 3}
   launchPoint: {fileID: 3999425001254036547}
   reloadTime: 2
@@ -245,13 +252,6 @@ MonoBehaviour:
   confortRangeGap: 3
   maxTargetRandomPick: 10
   stepVerifNumber: 10
-  bldAtkProj: {fileID: 2506502440746105523, guid: 95b6d119adece5c409034adef131a1f4, type: 3}
-  bldAtkLaunchPoint: {fileID: 3999425001254036547}
-  bldAtkRange: 4
-  bldAtkCd: 3
-  bldAtkDamage: 1
-  bldAtkChargeTime: 1
-  bldProjGravityModif: 5
   stepDuration: 0.02
   stepNumbers: 200
 --- !u!114 &5167973300521411151
@@ -266,7 +266,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 385204deb74004e4d9900f8f1d1f92a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 20
   health: 0
 --- !u!114 &3634246684977441139
 MonoBehaviour:

@@ -6,9 +6,11 @@ using System;
 public class HuntTarget : IState
 {
     private Agent agent;
+    private float atkRange;
 
-    public HuntTarget(Agent agent){
+    public HuntTarget(Agent agent, float atkRange){
         this.agent = agent;
+        this.atkRange = atkRange;
     }
 
     public void OnEnter(){
@@ -17,8 +19,8 @@ public class HuntTarget : IState
     }
 
     public void Tick(){
-        if(agent.Target != null) {
-            agent.CheckAndSetDestination(agent.Target.position);
+        if(agent.Target != null /*&& agent.NavDistToTarget > atkRange*/) {
+            agent.CheckAndSetDestination(agent.Target.position + (agent.transform.position - agent.Target.position).normalized * atkRange / 2);
             agent.LookAtDirection(agent.Target.position);
         }
     }

@@ -153,7 +153,7 @@ MonoBehaviour:
   atkRange: 2
   atkRadius: 2
   atkDamage: 1
-  atkKnockback: 8
+  atkKnockback: 4
   reloadDuration: 1.5
   slashPartSystem: {fileID: 8637674244510264989}
 --- !u!114 &8355333354777030581

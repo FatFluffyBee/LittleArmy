@@ -2,50 +2,97 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using System;
 
-public class Ennemi_Basic : Agent
+public class Ennemi_Basic : Agent_Ennemi
 {
     [Header("Behavior")]
-    private Transform agentTarget;
-    private float navDistToTarget;
-    private Castle buildingTarget;
+    FiniteStateMachine stateMachine;
+    [SerializeField] private string currentStateName;
     [SerializeField] private float aggroRange;
-    [SerializeField] private float circlingRange;
     [SerializeField] private float atkRange;
     
     [Header("Agent Attack")]
     [SerializeField] private ParticleSystem slashPartSystem;
-    [SerializeField] private float timeBtwAtk;
-    float timeBtwAtkTimer = 0;
+    [SerializeField] private float reloadDuration;
+    float reloadTimer = 0;
     [SerializeField] private float atkRadius;
     [SerializeField] private float atkKnockback;
     [SerializeField] private float atkDamage;
     [SerializeField] private float atkNumTargets;
-
-    [Header("Building Attack")]
-    [SerializeField] private GameObject bldAtkProj;
-    [SerializeField] private Transform bldAtkLaunchPoint;
-    [SerializeField] private float bldAtkRange;
-    [SerializeField] private float bldAtkCd;
-    [SerializeField] private float bldAtkDamage;
-    [SerializeField] private float bldAtkChargeTime;
-    [SerializeField] private float bldProjGravityModif;
-    private float bldAtkChargeTimer = 0;
-    private float bldAtkCdTimer = 0;
     
     void Start()
     {
         Initialize();
-        currentState = AgentState.SeekBuilding;
+        stateMachine = new FiniteStateMachine();
+
+        var huntTarget = new HuntTarget(this, atkRange);
+        var chargeAttack = new ChargeAttack(this, LaunchSlashAttack);
+        var huntBuilding = new HuntBuilding(this, bldAtkRange);
+        var attackBuilding = new AttackBuilding(this, bldAtkChargeDuration);
+        
+        At(huntBuilding, huntTarget, () => Target != null);
+        At(huntBuilding, attackBuilding, BldInRangeAndBldReloadReady());
+        At(attackBuilding, huntTarget, () => Target != null);
+        At(attackBuilding, huntBuilding, () => bldAtkReloadTimer > Time.time);
+        At(huntTarget, huntBuilding, () => Target == null);
+        At(huntTarget, chargeAttack, TargetInAtkRangeAndReloadReady());
+        At(chargeAttack, huntTarget, () => reloadTimer > Time.time);
+
+        stateMachine.SetState(huntBuilding); 
+
+        void At(IState from, IState to, Func<bool> condition) => stateMachine.AddTransition(from, to, condition);
+        
+        Func<bool> BldInRangeAndBldReloadReady() => () => TargetBld != null && NavDistBld < bldAtkRange 
+            && bldAtkReloadTimer < Time.time;
+        Func<bool> TargetInAtkRangeAndReloadReady() => () => Target != null && NavDistToTarget < atkRange && reloadTimer < Time.time;
     }
 
     void Update()
     { 
         BaseUpdate();
         
-        agentTarget = GetClosestTargetInRange(aggroRange, AgentType.Ally, TargetType.All, DistMode.Nav, out navDistToTarget);
+        Target = GetClosestTargetInRange(aggroRange, AgentType.Ally, TargetType.All, DistMode.Nav, out float navDist);
+        NavDistToTarget = navDist;
+        stateMachine.Tick();
 
-        switch(currentState) {
+        currentStateName = stateMachine.GetStateName();
+    }
+
+    private void LaunchSlashAttack() {
+        slashPartSystem.Stop();
+        slashPartSystem.Play();
+
+        Collider[] hits = Physics.OverlapSphere(transform.position + (Target.position - transform.position).normalized * atkRange / 2, atkRadius);
+        if(hits.Length > 0) {
+            List<DataTarget> dataTargets = new List<DataTarget>();
+            foreach(Collider hit in hits) {
+                if(hit.transform.GetComponent<IsTargeteable>())
+                    if(hit.transform.GetComponent<IsTargeteable>().agentType == AgentType.Ally) {
+                        dataTargets.Add(new DataTarget(hit, Vector3.Distance(transform.position, hit.transform.position)));
+                    }
+            }
+
+            if(dataTargets.Count > 0) {
+                dataTargets = OrderDataTargetsByDist(dataTargets);
+
+                for(int i = 0; i < ((atkNumTargets > dataTargets.Count)? dataTargets.Count : atkNumTargets); i++) { //in case there is less target to hit than the max number of agent the atk can hit
+                    Vector3 knockBarDir = dataTargets[i].col.transform.position - transform.position; 
+                    knockBarDir.y = 0;
+                    Vector3 knockbackVector = knockBarDir.normalized * atkKnockback;
+                    dataTargets[i].col.GetComponent<HealthSystem>().TakeDamage(atkDamage, knockbackVector);
+                } 
+            }
+        }
+        SetReloadTimer();
+    }
+
+    private void SetReloadTimer() {
+        reloadTimer = reloadDuration + Time.time;
+    }
+       
+       
+       /*switch(currentState) {
             case AgentState.SeekAgent :
                 if(agentTarget == null) {
                     SwitchAgentState(AgentState.SeekBuilding);
@@ -118,50 +165,15 @@ public class Ennemi_Basic : Agent
                     EnableAgentMovement(false);
                 }
             break;
-        }
-    }
-
-    private void LaunchBuildingAttack() {
-        GameObject instance = Instantiate(bldAtkProj, bldAtkLaunchPoint.position, Quaternion.identity);
-        instance.GetComponent<Torch>().Initialize(buildingTarget.GetComponent<Castle>());
-        
-        bldAtkCdTimer = bldAtkCd + Time.time;
-    }
-
-    private void LaunchSlashAttack() {
-        slashPartSystem.Stop();
-        slashPartSystem.Play();
-
-        Collider[] hits = Physics.OverlapSphere(transform.position + (agentTarget.position - transform.position).normalized * atkRange / 2, atkRadius);
-        if(hits.Length > 0) {
-            List<DataTarget> dataTargets = new List<DataTarget>();
-            foreach(Collider hit in hits) {
-                if(hit.transform.GetComponent<IsTargeteable>())
-                    if(hit.transform.GetComponent<IsTargeteable>().agentType == AgentType.Ally) {
-                        dataTargets.Add(new DataTarget(hit, Vector3.Distance(transform.position, hit.transform.position)));
-                    }
-            }
-
-            if(dataTargets.Count > 0) {
-                dataTargets = OrderDataTargetsByDist(dataTargets);
-            }
-            for(int i = 0; i < ((atkNumTargets > dataTargets.Count)? dataTargets.Count : atkNumTargets); i++) { //in case there is less target to hit than the max number of agent the atk can hit
-                Vector3 knockBarDir = dataTargets[i].col.transform.position - transform.position; 
-                knockBarDir.y = 0;
-                Vector3 knockbackVector = knockBarDir.normalized * atkKnockback;
-                dataTargets[i].col.GetComponent<HealthSystem>().TakeDamage(atkDamage, knockbackVector);
-            } 
-        }
-        
-        timeBtwAtkTimer = Time.time + timeBtwAtk;
-    }
+        }*/
+   // }
 
     private void OnDrawGizmos() {
         if(debug) {
             Gizmos.color = Color.green; 
             Gizmos.DrawWireSphere(transform.position, aggroRange); //Draw range
             Gizmos.color = Color.yellow; 
-            Gizmos.DrawWireSphere(transform.position, circlingRange); //Draw range
+            Gizmos.DrawWireSphere(transform.position, bldAtkRange); //Draw range
             Gizmos.color = Color.red; 
             Gizmos.DrawWireSphere(transform.position, atkRange); //Draw range
             if(Application.isPlaying)

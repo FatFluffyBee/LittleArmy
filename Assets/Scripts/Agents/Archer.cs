@@ -74,30 +74,6 @@ public class Archer : Agent
 
         currentStateName = stateMachine.GetStateName();
         Debug.Log(AsBeenMoveOrdered);
-
-        /*disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float d);
-        if(disrupterTarget != null && currentState != AgentState.Travelling){
-            SwitchAgentState(AgentState.Fleeing);
-        }*/
-
-        
-            /*case AgentState.Fleeing :
-                if(disrupterTarget == null) {
-                    SwitchAgentState(AgentState.Idle);
-                    SetDestination(homePoint); 
-
-                    LookAtDirection(homePoint);
-                } else {
-                    //agent run away from ennemy but not too fire away from homepoint so its not a big mess (it still is)
-                    float ratioDistanceHomePointMax = Mathf.Clamp01(1 - Vector3.Distance(transform.position, homePoint) / softMaxFleeingRange);
-                    Vector3 fleeingIdealPos = transform.position - (disrupterTarget.position - transform.position).normalized * (disruptRange + 1f) * ratioDistanceHomePointMax;
-                    NavMesh.SamplePosition(fleeingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
-                    SetDestination(navPos.position);
-
-                    LookAtDirection(disrupterTarget.position);
-                }
-                EnableAgentMovement(true);
-            break;*/
     }
 
     Action TMPTriggerFire => () => readyToFire = true;
@@ -146,5 +122,27 @@ public class Archer : Agent
             Gizmos.DrawWireSphere(transform.position, disruptRange); 
         }   
     }
+
+    /*private void Flee() {
+        disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ennemi, TargetType.All, DistMode.Nav, out float d);
+        if(disrupterTarget != null && currentState != AgentState.Travelling){
+            SwitchAgentState(AgentState.Fleeing);
+        }
+            if(disrupterTarget == null) {
+                SwitchAgentState(AgentState.Idle);
+                SetDestination(homePoint); 
+
+                LookAtDirection(homePoint);
+            } else {
+                //agent run away from ennemy but not too fire away from homepoint so its not a big mess (it still is)
+                float ratioDistanceHomePointMax = Mathf.Clamp01(1 - Vector3.Distance(transform.position, homePoint) / softMaxFleeingRange);
+                Vector3 fleeingIdealPos = transform.position - (disrupterTarget.position - transform.position).normalized * (disruptRange + 1f) * ratioDistanceHomePointMax;
+                NavMesh.SamplePosition(fleeingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
+                SetDestination(navPos.position);
+
+                LookAtDirection(disrupterTarget.position);
+            }
+            EnableAgentMovement(true);
+    }*/
 }
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class Ennemi_Archer : Agent
+public class Ennemi_Archer : Agent_Ennemi
 {
     [Header("Projectile Launch")]
     [SerializeField] private GameObject arrowPrefab;
@@ -32,18 +32,6 @@ public class Ennemi_Archer : Agent
     [SerializeField] private int stepVerifNumber = 10;
     private bool isTargetHittable;
 
-    [Header("Building Attack")]
-    [SerializeField] private GameObject bldAtkProj;
-    [SerializeField] private Transform bldAtkLaunchPoint;
-    [SerializeField] private float bldAtkRange;
-    [SerializeField] private float bldAtkCd;
-    [SerializeField] private float bldAtkDamage;
-    [SerializeField] private float bldAtkChargeTime;
-    [SerializeField] private float bldProjGravityModif;
-    private Castle buildingTarget;
-    private float bldAtkChargeTimer = 0;
-    private float bldAtkCdTimer = 0;
-
     [Header("Debug Trajectory")]
     [SerializeField] private float stepDuration;
     [SerializeField] private int stepNumbers;
@@ -56,9 +44,9 @@ public class Ennemi_Archer : Agent
     }
 
     // Update is called once per frame
-    void Update()
+   /* void Update()
     {
-        BaseUpdate();
+        /*BaseUpdate();
 
         if(!IsTargetValid(agentTarget, atkRange)) {
             agentTarget = GetRandomTargetInRange(atkRange, AgentType.Ally, TargetType.All, DistMode.View, out distToTarget, maxTargetRandomPick);
@@ -77,7 +65,7 @@ public class Ennemi_Archer : Agent
             SwitchAgentState(AgentState.Fleeing);
         }*/
 
-        switch(currentState) {
+       /* switch(currentState) {
             case AgentState.SeekBuilding:
                 DoSeekBuilding();
             break;
@@ -97,10 +85,10 @@ public class Ennemi_Archer : Agent
             /*case AgentState.Fleeing:
                 DoFleeing();
             break;*/
-        }
+    /*    }
     }
 
-    void FixedUpdate(){ 
+    /*void FixedUpdate(){ 
         if(readyToFire){
             LaunchAttack();
         }
@@ -254,5 +242,5 @@ public class Ennemi_Archer : Agent
             Gizmos.DrawWireSphere(transform.position, confortRange); 
         }
             
-    }
+    }*/
 }

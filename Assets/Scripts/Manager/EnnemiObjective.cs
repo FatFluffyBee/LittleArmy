@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.AI.Navigation;
 using Unity.VisualScripting;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -14,6 +15,9 @@ public class EnnemiObjective : MonoBehaviour
     void Awake() { //! To change later (initialize in a map loading)
         instance = this;
         ennemiObjectives = FindObjectsOfType<Castle>().ToList();
+
+        foreach(Castle c in ennemiObjectives)
+            Debug.Log(c);
     }
     void Update() { //! Create game manager
         if(ennemiObjectives.Count == 0)
@@ -28,13 +32,7 @@ public class EnnemiObjective : MonoBehaviour
         int closestIndex = 0;
 
         for(int i = 0; i < ennemiObjectives.Count; i++) {
-            float distance = 0;
-            NavMeshPath path = new NavMeshPath();
-            NavMesh.CalculatePath(agentPos, ennemiObjectives[i].transform.position, NavMesh.AllAreas, path);
-            for ( int j = 1; j < path.corners.Length; j++ )
-            {
-                distance += Vector3.Distance( path.corners[j-1], path.corners[j] );
-            }
+            float distance = NavMaths.DistBtwPoints(agentPos, ennemiObjectives[i].GetClosestPosition()) + Vector3.Distance(agentPos, ennemiObjectives[i].transform.position);
 
             if(closestDistance > distance) {
                 closestDistance = distance;

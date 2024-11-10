@@ -145,22 +145,22 @@ MonoBehaviour:
   cycleDuration: 0.4
   heightMax: 0.5
   debug: 0
-  aggroRange: 15
-  circlingRange: 3
-  atkRange: 2
-  slashPartSystem: {fileID: 5017966175624832214}
-  timeBtwAtk: 0.75
-  atkRadius: 2
-  atkKnockback: 8
-  atkDamage: 1
-  atkNumTargets: 1
   bldAtkProj: {fileID: 2506502440746105523, guid: 95b6d119adece5c409034adef131a1f4, type: 3}
   bldAtkLaunchPoint: {fileID: 4315067884395122541}
   bldAtkRange: 4
-  bldAtkCd: 3
+  bldAtkReloadDuration: 2
   bldAtkDamage: 1
-  bldAtkChargeTime: 1
+  bldAtkChargeDuration: 1
   bldProjGravityModif: 5
+  currentStateName: 
+  aggroRange: 15
+  atkRange: 2
+  slashPartSystem: {fileID: 5017966175624832214}
+  reloadDuration: 1
+  atkRadius: 2
+  atkKnockback: 4
+  atkDamage: 1
+  atkNumTargets: 1
 --- !u!195 &7001289295324889284
 NavMeshAgent:
   m_ObjectHideFlags: 0

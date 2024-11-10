@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class Castle : MonoBehaviour
 {
@@ -34,6 +35,12 @@ public class Castle : MonoBehaviour
      private void OnHit(Vector3 knockback) {
         feedbackHit = true;
         timerFeedback = 0;
+    }
+
+    public Vector3 GetClosestPosition() {
+        NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas);
+        Debug.Log(Vector3.Distance(hit.position, transform.position));
+        return hit.position;
     }
 
     void VisualFeedbackHit(){

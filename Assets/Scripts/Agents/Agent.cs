@@ -39,6 +39,9 @@ public class Agent : MonoBehaviour, ISelectable
 
     public Transform Target {get; set;}
     public bool InCombat {get; set;}
+
+    public float NavDistToTarget {get; set;}
+    public float NavDistToHome {get; set;}
  
     public void Initialize(){
         rb = GetComponent<Rigidbody>();
