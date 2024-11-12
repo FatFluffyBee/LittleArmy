@@ -43,7 +43,7 @@ public class Archer : Agent
 
         var idle = new Idle(this);
         var returnHome = new ReturnHome(this);
-        var chargeAttack = new ChargeAttack(this, timeToChargeRange.x, TMPTriggerFire);
+        var chargeAttack = new ChargeAttack(this, timeToChargeRange.x, TriggerAttack);
         var prioMovement = new PrioMovement(this);
         
         At(idle, chargeAttack, AsTargetAndReloadReady());
@@ -73,10 +73,9 @@ public class Archer : Agent
         stateMachine.Tick();
 
         currentStateName = stateMachine.GetStateName();
-        Debug.Log(AsBeenMoveOrdered);
     }
 
-    Action TMPTriggerFire => () => readyToFire = true;
+    Action TriggerAttack => () => readyToFire = true;
 
     void FixedUpdate(){ 
         if(readyToFire){

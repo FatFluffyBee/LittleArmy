@@ -15,9 +15,6 @@ public class EnnemiObjective : MonoBehaviour
     void Awake() { //! To change later (initialize in a map loading)
         instance = this;
         ennemiObjectives = FindObjectsOfType<Castle>().ToList();
-
-        foreach(Castle c in ennemiObjectives)
-            Debug.Log(c);
     }
     void Update() { //! Create game manager
         if(ennemiObjectives.Count == 0)

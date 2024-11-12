@@ -20,7 +20,7 @@ public class HuntTarget : IState
 
     public void Tick(){
         if(agent.Target != null /*&& agent.NavDistToTarget > atkRange*/) {
-            agent.CheckAndSetDestination(agent.Target.position + (agent.transform.position - agent.Target.position).normalized * atkRange / 2);
+            agent.CheckAndSetDestination(agent.Target.position + (agent.transform.position - agent.Target.position).normalized * atkRange);
             agent.LookAtDirection(agent.Target.position);
         }
     }

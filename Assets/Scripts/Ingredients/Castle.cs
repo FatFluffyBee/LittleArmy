@@ -39,7 +39,6 @@ public class Castle : MonoBehaviour
 
     public Vector3 GetClosestPosition() {
         NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas);
-        Debug.Log(Vector3.Distance(hit.position, transform.position));
         return hit.position;
     }
 

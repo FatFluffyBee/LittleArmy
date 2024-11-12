@@ -1,13 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI;
 using System;
 
 public class Ennemi_Basic : Agent_Ennemi
 {
     [Header("Behavior")]
-    FiniteStateMachine stateMachine;
+    private FiniteStateMachine stateMachine;
     [SerializeField] private string currentStateName;
     [SerializeField] private float aggroRange;
     [SerializeField] private float atkRange;
@@ -20,10 +19,21 @@ public class Ennemi_Basic : Agent_Ennemi
     [SerializeField] private float atkKnockback;
     [SerializeField] private float atkDamage;
     [SerializeField] private float atkNumTargets;
+
+    [Header("Shield")]
+    [SerializeField] private bool asShield;
+    [SerializeField] private Shield shield; 
+    [SerializeField] private float shieldViewRange;
+    public Transform TargetShield {get;set;}
     
     void Start()
     {
         Initialize();
+
+        if(!asShield) {
+            shield?.gameObject.SetActive(false);
+        }
+
         stateMachine = new FiniteStateMachine();
 
         var huntTarget = new HuntTarget(this, atkRange);
@@ -54,9 +64,21 @@ public class Ennemi_Basic : Agent_Ennemi
         
         Target = GetClosestTargetInRange(aggroRange, AgentType.Ally, TargetType.All, DistMode.Nav, out float navDist);
         NavDistToTarget = navDist;
-        stateMachine.Tick();
 
+        if(asShield && shield != null) {
+            UpdateShield();
+        }
+        
+        stateMachine.Tick();
         currentStateName = stateMachine.GetStateName();
+    }
+
+    private void UpdateShield() {
+        TargetShield = GetClosestTargetInRange(shieldViewRange, AgentType.Ally, TargetType.Range, DistMode.View);
+        if(TargetShield != null)
+            shield.RaiseShield();
+        else
+            shield.LowerShield();
     }
 
     private void LaunchSlashAttack() {
@@ -90,83 +112,6 @@ public class Ennemi_Basic : Agent_Ennemi
     private void SetReloadTimer() {
         reloadTimer = reloadDuration + Time.time;
     }
-       
-       
-       /*switch(currentState) {
-            case AgentState.SeekAgent :
-                if(agentTarget == null) {
-                    SwitchAgentState(AgentState.SeekBuilding);
-                }
-                else {
-                    if(navDistToTarget < atkRange && timeBtwAtkTimer < Time.time) { //ally in range  and ready to atk
-                        SwitchAgentState(AgentState.Attacking);
-                    } 
-                    else if (timeBtwAtkTimer < Time.time) { //ally not in circling range so just avance 
-                        CheckAndSetDestination(agentTarget.position);
-                    } 
-                    else { //ally in circling range
-                        Vector3 circlingIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * circlingRange;
-                        NavMesh.SamplePosition(circlingIdealPos, out NavMeshHit navPos, 10f, NavMesh.AllAreas);
-                        CheckAndSetDestination(navPos.position);
-                     }
-                }
-                    
-                if(agentTarget != null)
-                    LookAtDirection(agentTarget.position);
-                EnableAgentMovement(true);
-            break;
-
-            case AgentState.Attacking :
-                LaunchSlashAttack();
-                SwitchAgentState(AgentState.SeekAgent);
-
-                LookAtDirection(agentTarget.position);
-                EnableAgentMovement(false);
-            break;
-
-            case AgentState.SeekBuilding :
-                if(agentTarget != null) {
-                    currentState = AgentState.SeekAgent;
-                }
-                
-                if(buildingTarget == null)
-                    buildingTarget = EnnemiObjective.instance.GetClosestObjective(transform.position);
-
-                if(NavMesh.SamplePosition(buildingTarget.transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
-                    if(bldAtkCdTimer < Time.time && NavMaths.DistBtwPoints(transform.position, hit.position) < bldAtkRange) {
-                        SwitchAgentState(AgentState.AttackBuilding);
-                        bldAtkChargeTimer = bldAtkChargeTime + Time.time;
-                    }
-                    else {
-                        CheckAndSetDestination(hit.position);
-                    } 
-                } 
-
-                if(navMeshAgent.path.corners.Length > 1)
-                    LookAtDirection(navMeshAgent.path.corners[1]);
-                EnableAgentMovement(true);
-            break;
-
-            case AgentState.AttackBuilding :
-                if(buildingTarget == null) {
-                        SwitchAgentState(AgentState.SeekBuilding);
-                }
-                else {
-                    if(agentTarget != null) {
-                        currentState = AgentState.SeekAgent;
-                    }
-
-                    if(bldAtkChargeTimer < Time.time) {
-                        LaunchBuildingAttack();
-                        SwitchAgentState(AgentState.SeekBuilding);
-                    }
-
-                    LookAtDirection(buildingTarget.transform.position); 
-                    EnableAgentMovement(false);
-                }
-            break;
-        }*/
-   // }
 
     private void OnDrawGizmos() {
         if(debug) {
@@ -176,6 +121,8 @@ public class Ennemi_Basic : Agent_Ennemi
             Gizmos.DrawWireSphere(transform.position, bldAtkRange); //Draw range
             Gizmos.color = Color.red; 
             Gizmos.DrawWireSphere(transform.position, atkRange); //Draw range
+            Gizmos.color = Color.yellow; 
+            Gizmos.DrawWireSphere(transform.position, shieldViewRange); //Draw range
             if(Application.isPlaying)
                 Gizmos.DrawLine(transform.position, transform.position + rb.velocity);
         }    

@@ -184,7 +184,7 @@ MonoBehaviour:
   reloadDuration: 3
   timeToChargeRange: {x: 0.5, y: 0.75}
   atkRange: 25
-  deviationRange: {x: 0.5, y: 1.5}
+  deviationRange: {x: 0.2, y: 1.5}
   airTimeRange: {x: 0.1, y: 0.6}
   gravMul: 20
   damage: 2

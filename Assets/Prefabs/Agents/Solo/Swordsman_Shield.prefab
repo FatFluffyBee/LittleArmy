@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 242857930177275171}
     m_Modifications:
+    - target: {fileID: 476887311756092298, guid: bdd811d3faf46b946aa35878c1ddba4f, type: 3}
+      propertyPath: health
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1034753885495123927, guid: bdd811d3faf46b946aa35878c1ddba4f, type: 3}
       propertyPath: m_Name
       value: ShieldHolder
@@ -57,6 +61,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bdd811d3faf46b946aa35878c1ddba4f, type: 3}
+--- !u!114 &5899826448129896146 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 476887311756092298, guid: bdd811d3faf46b946aa35878c1ddba4f, type: 3}
+  m_PrefabInstance: {fileID: 6304576166810373464}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 904fa3ad12ceda84b9bd5bcb3ab3a6f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &8673408040688551812 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3395846293088783068, guid: bdd811d3faf46b946aa35878c1ddba4f, type: 3}
@@ -177,6 +192,8 @@ MonoBehaviour:
   atkKnockback: 8
   reloadDuration: 1.5
   slashPartSystem: {fileID: 2320000534550328403}
+  shield: {fileID: 5899826448129896146}
+  shieldViewRange: 30
 --- !u!23 &9148757738355602940 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: 2962111226283241266, guid: 09c658d77717b304694345ecbc1f324f, type: 3}

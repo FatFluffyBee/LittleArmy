@@ -2,13 +2,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using System;
 
-public class Ennemi_Archer : Agent_Ennemi
+public class Ennemi_Archer : Agent_Ennemi, I_Range
 {
+    private FiniteStateMachine stateMachine;
+    [SerializeField] private string currentStateName;
     [Header("Projectile Launch")]
     [SerializeField] private GameObject arrowPrefab;
     [SerializeField] private Transform launchPoint;
-    [SerializeField] private float reloadTime;
+    [SerializeField] private float reloadDuration;
     [SerializeField] private Vector2 timeToChargeRange;
     [SerializeField] private float atkRange;
     [SerializeField] private Vector2 deviationRange;
@@ -16,21 +19,17 @@ public class Ennemi_Archer : Agent_Ennemi
     [SerializeField] private float gravMul;
     [SerializeField] private float damage;
     [SerializeField] private float knockbackForce;
-    private float reloadTimeTimer;
-    private float timeToCharge;
-    private float timeToChargeCount;
+    private float reloadTimer;
     private bool readyToFire = false;
 
     [Header("Targetting")]
-    private Transform agentTarget;
-    private float distToTarget;
-    private Transform disrupterTarget;
+    //private Transform disrupterTarget;
     [SerializeField] private float disruptRange = 5f;
     [SerializeField] private float confortRange;
     [SerializeField] private float confortRangeGap;
     [SerializeField] private int maxTargetRandomPick = 5;
     [SerializeField] private int stepVerifNumber = 10;
-    private bool isTargetHittable;
+    public bool IsTargetHittable {get; set;}
 
     [Header("Debug Trajectory")]
     [SerializeField] private float stepDuration;
@@ -40,176 +39,71 @@ public class Ennemi_Archer : Agent_Ennemi
     void Start()
     {
         Initialize();
-        currentState = AgentState.SeekBuilding;
-    }
+        stateMachine = new FiniteStateMachine();
 
-    // Update is called once per frame
-   /* void Update()
-    {
-        /*BaseUpdate();
-
-        if(!IsTargetValid(agentTarget, atkRange)) {
-            agentTarget = GetRandomTargetInRange(atkRange, AgentType.Ally, TargetType.All, DistMode.View, out distToTarget, maxTargetRandomPick);
-        }
-        else {
-            distToTarget = Vector3.Distance(agentTarget.position, transform.position);
-        }
-
-        if(agentTarget != null) 
-            isTargetHittable = IsTargetHittable(transform.position, agentTarget, atkRange, airTimeRange, gravMul, stepVerifNumber);
-        else
-            isTargetHittable = false;
-
-        /*disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ally, TargetType.All, DistMode.Nav);
-        if(disrupterTarget != null){
-            SwitchAgentState(AgentState.Fleeing);
-        }*/
-
-       /* switch(currentState) {
-            case AgentState.SeekBuilding:
-                DoSeekBuilding();
-            break;
-
-            case AgentState.AttackBuilding:
-                DoAttackBuilding();
-            break;
-
-            case AgentState.SeekAgent:
-                DoSeekAgent();
-            break;
-
-            case AgentState.AttackAgent:
-                DoAttacking();
-            break;
-
-            /*case AgentState.Fleeing:
-                DoFleeing();
-            break;*/
-    /*    }
-    }
-
-    /*void FixedUpdate(){ 
-        if(readyToFire){
-            LaunchAttack();
-        }
-    }
-
-    void DoSeekBuilding() {
-        if(agentTarget != null) {
-            currentState = AgentState.SeekAgent;
-        }
-        if(buildingTarget == null) {
-            buildingTarget = EnnemiObjective.instance.GetClosestObjective(transform.position);
-            if(buildingTarget == null) return;
-        }
-            
-        if(NavMesh.SamplePosition(buildingTarget.transform.position, out NavMeshHit hit, 10f, NavMesh.AllAreas)) {
-            if(bldAtkCdTimer < Time.time && NavMaths.DistBtwPoints(transform.position, hit.position) < bldAtkRange) {
-                SwitchAgentState(AgentState.AttackBuilding);
-                bldAtkChargeTimer = bldAtkChargeTime + Time.time;
-            }
-            else {
-                CheckAndSetDestination(hit.position);
-            } 
-        } 
-
-        if(navMeshAgent.path.corners.Length > 1)
-            LookAtDirection(navMeshAgent.path.corners[1]);
-        EnableAgentMovement(true);
-    }
-
-    void DoAttackBuilding() {
-        if(buildingTarget == null) {
-            SwitchAgentState(AgentState.SeekBuilding);
-        }
-        else {
-            if(agentTarget != null) {
-                currentState = AgentState.SeekAgent;
-            }
-
-            if(bldAtkChargeTimer < Time.time) {
-                LaunchBuildingAttack();
-                SwitchAgentState(AgentState.SeekBuilding);
-            }
-
-            LookAtDirection(buildingTarget.transform.position); 
-            EnableAgentMovement(false);
-        }
-}
-
-    void DoSeekAgent() {
-         if(agentTarget == null) {
-            currentState = AgentState.SeekBuilding;
-            return;
-        } 
+        var seekShootingPos = new SeekShootingPos(this, atkRange, confortRange, confortRangeGap);
+        var chargeAttack = new ChargeAttack(this, timeToChargeRange.x, TriggerAttack);
+        var huntBuilding = new HuntBuilding(this, bldAtkRange);
+        var attackBuilding = new AttackBuilding(this, bldAtkChargeDuration);
         
-        if(distToTarget > atkRange || !isTargetHittable) {
-            CheckAndSetDestination(agentTarget.position);
+        At(huntBuilding, seekShootingPos, () => Target != null);
+        At(huntBuilding, attackBuilding, BldInRangeAndBldReloadReady());
+        At(attackBuilding, seekShootingPos, () => Target != null);
+        At(attackBuilding, huntBuilding, BldReloadnotReadyOrNoBldTarget());
+        At(seekShootingPos, huntBuilding, () => Target == null);
+        At(seekShootingPos, chargeAttack, TargetInRangeShotValidAndReloadReady());
+        At(chargeAttack, seekShootingPos, () => reloadTimer > Time.time);
+
+        stateMachine.SetState(huntBuilding); 
+
+        void At(IState from, IState to, Func<bool> condition) => stateMachine.AddTransition(from, to, condition);
+        
+        Func<bool> BldReloadnotReadyOrNoBldTarget() => () => TargetBld == null || bldAtkReloadTimer > Time.time;
+        Func<bool> BldInRangeAndBldReloadReady() => () => TargetBld != null && NavDistBld < bldAtkRange 
+            && bldAtkReloadTimer < Time.time;
+        Func<bool> TargetInRangeShotValidAndReloadReady() => () => Target != null && NavDistToTarget < atkRange && reloadTimer < Time.time && IsTargetHittable;
+    }
+
+    void Update()
+    { 
+        BaseUpdate();
+        
+        if(!IsTargetValid(Target, atkRange)) {
+            Target = GetRandomTargetInRange(atkRange, AgentType.Ally, TargetType.All, DistMode.View, out float viewDist, maxTargetRandomPick);
+            NavDistToTarget = viewDist;
+        } else {
+            NavDistToTarget = Vector3.Distance(Target.position, transform.position);
         }
-        else if(reloadTimeTimer < Time.time && distToTarget < atkRange && isTargetHittable){
-            currentState = AgentState.AttackAgent;
-            timeToCharge = Random.Range(timeToChargeRange.x, timeToChargeRange.y);
-            timeToChargeCount = timeToCharge + Time.time;
-        } else if(distToTarget < confortRange - confortRangeGap || distToTarget > confortRange + confortRangeGap){
-            Vector3 confortIdealPos = agentTarget.position + (transform.position - agentTarget.position).normalized * confortRange;
-            NavMesh.SamplePosition(confortIdealPos, out NavMeshHit navPos, atkRange, NavMesh.AllAreas);
-            CheckAndSetDestination(navPos.position);
+
+        if(Target != null) 
+            IsTargetHittable = IsTargetHittable(transform.position, Target, atkRange, airTimeRange, gravMul, stepVerifNumber);
+
+        //disrupterTarget = GetClosestTargetInRange(disruptRange, AgentType.Ally, TargetType.All, DistMode.Nav);
+            
+        stateMachine.Tick();
+
+        currentStateName = stateMachine.GetStateName();
+    }
+
+    void FixedUpdate(){ 
+        if(readyToFire){
+            FireProjectile();
+            Target = null;
+            readyToFire = false;
         }
-
-        LookAtDirection(agentTarget.position);
-        EnableAgentMovement(true);
     }
 
-    void DoAttacking() {
-        if(agentTarget == null) {
-            SwitchAgentState(AgentState.SeekBuilding);
-        } 
-        else {
-            if(timeToChargeCount < Time.time) {
-                readyToFire = true;
-            }
-
-            LookAtDirection(agentTarget.position);
-        }  
-        EnableAgentMovement(false);
-    }
-
-    void DoFleeing() {
-        if(disrupterTarget == null) {
-            SwitchAgentState(AgentState.SeekAgent);
-        } else {       
-            Vector3 fleeingIdealPos = transform.position - (disrupterTarget.position - transform.position).normalized * (disruptRange + 1f);
-            NavMesh.SamplePosition(fleeingIdealPos, out NavMeshHit navPos, atkRange, NavMesh.AllAreas);
-            CheckAndSetDestination(navPos.position);
-
-            LookAtDirection(disrupterTarget.position);
-        }
-        EnableAgentMovement(true);
-    }
-
-    void LaunchAttack() {
-        if(agentTarget == null) {
-            readyToFire = false; //cause we fire on fixedupdate there can be dissonance where the target is outrange the next frame before and so it create infinite error loop
-            return;
-        } 
-
-        FireProjectile();
-        reloadTimeTimer = Time.time + reloadTime;
-        readyToFire = false;
-        SwitchAgentState(AgentState.SeekAgent);
-        agentTarget = null; //reset target so it can focus an another one closer if needed
-    }
+    Action TriggerAttack => () => readyToFire = true;
 
     void FireProjectile(){
-        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(launchPoint.position, agentTarget, atkRange, airTimeRange, gravMul, 
-            deviationRange, TrajMode.PredictionPos);
+        Vector3 initialVelocity = TrajMaths.GetInitVelocityForBellCurveFromRangeValue(launchPoint.position, Target, atkRange, airTimeRange, gravMul, deviationRange, TrajMode.PredictionPos);
 
         if(debug){
             Vector3 pos = launchPoint.position;
             Vector3 velocity = initialVelocity;
             lineRd.positionCount = stepNumbers+1;
             lineRd.SetPosition(0, pos);
-            for(int i = 0; i < stepNumbers; i++) {
+            for(int i = 0; i < stepNumbers; i++){
                 pos += velocity * stepDuration;
                 velocity += Physics.gravity * stepDuration * gravMul;
                 
@@ -221,13 +115,12 @@ public class Ennemi_Archer : Agent_Ennemi
         instance.GetComponent<Rigidbody>().velocity = initialVelocity;
         instance.GetComponent<GravityAmplifier>().Initialize(gravMul);
         instance.GetComponent<Projectile>().Initialize(damage, knockbackForce, transform.position, AgentType.Ennemi);
+
+        SetReloadTimer();
     }
 
-    private void LaunchBuildingAttack() {
-        GameObject instance = Instantiate(bldAtkProj, bldAtkLaunchPoint.position, Quaternion.identity);
-        instance.GetComponent<Torch>().Initialize(buildingTarget.GetComponent<Castle>());
-        
-        bldAtkCdTimer = bldAtkCd + Time.time;
+     private void SetReloadTimer() {
+        reloadTimer = reloadDuration + Time.time;
     }
 
     private void OnDrawGizmos() {
@@ -242,5 +135,5 @@ public class Ennemi_Archer : Agent_Ennemi
             Gizmos.DrawWireSphere(transform.position, confortRange); 
         }
             
-    }*/
+    }
 }

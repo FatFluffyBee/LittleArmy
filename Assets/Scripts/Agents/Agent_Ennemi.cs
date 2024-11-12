@@ -32,10 +32,6 @@ public class Agent_Ennemi : Agent
         NavDistBld = GetNavDistBld();
     }
 
-    public void GetNewBuildingPos() {
-
-    }
-
     public void LaunchBuildingAttack() {
         GameObject instance = Instantiate(bldAtkProj, bldAtkLaunchPoint.position, Quaternion.identity);
         instance.GetComponent<Torch>().Initialize(TargetBld);
